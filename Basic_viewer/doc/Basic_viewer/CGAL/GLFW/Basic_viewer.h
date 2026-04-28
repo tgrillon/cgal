@@ -142,11 +142,11 @@ public:
 
   /// \brief Enables or disables the use of a single color for all elements.
   /// \param b Set to `true` to use a single color, `false` for multiple colors.
-  void use_default_color(bool b);
+  void use_mono_color(bool b);
 
   /// \brief Enables or disables the use of a single color for all normals.
   /// \param b Set to `true` to enable, `false` to disable.
-  void use_default_color_normals(bool b);
+  void use_mono_color_normals(bool b);
 
   /// \brief Enables or disables the printing of the application state to the terminal.
   /// \param b Set to `true` to enable printing, `false` to disable.
@@ -196,10 +196,10 @@ public:
   void toggle_draw_mesh_triangles(); 
 
   /// \brief Toggles the use of the default color mode.
-  void toggle_use_default_color();
+  void toggle_use_mono_color();
 
   /// \brief Toggles the use of the default color mode for normals.
-  void toggle_use_default_color_normal();
+  void toggle_use_mono_color_normal();
 
   /// \brief Toggles the printing of the application state.
   void toggle_print_application_state();
@@ -211,7 +211,7 @@ public:
   /// - `CLIPPING_PLANE_SOLID_HALF_TRANSPARENT_HALF`: Renders half of the clipped object as solid and half as transparent.
   /// - `CLIPPING_PLANE_SOLID_HALF_WIRE_HALF`: Renders half of the clipped object as solid and half with wireframe.
   /// - `CLIPPING_PLANE_SOLID_HALF_ONLY`: Only renders the positive side of the clipped object.
-  void display_mode(DisplayMode m);
+  void display_mode(Display_mode m);
 
   /// \brief Enables the 2D/orthographic camera mode.
   void two_dimensional(); 
@@ -365,11 +365,11 @@ public:
 
   /// \brief Checks if the default color mode is used.
   /// \return `true` if default color mode is used, `false` otherwise.
-  bool use_default_color() const;
+  bool use_mono_color() const;
 
   /// \brief Checks if the default color mode for normals is used.
   /// \return `true` if default color mode for normals is used, `false` otherwise.
-  bool use_default_color_normal() const;
+  bool use_mono_color_normal() const;
 
   /// \brief Checks if normals are reversed.
   /// \return `true` if normals are reversed, `false` otherwise.

@@ -121,6 +121,24 @@ void Line_renderer::draw() {
   glLineWidth(1.f);
 }
 
+CGAL_INLINE_FUNCTION
+void Line_renderer::generate_grid(float size, int nb_subdivisions) {
+  for (unsigned int i = 0; i <= nb_subdivisions; ++i) {
+    float pos = float(size * (2.0 * i / nb_subdivisions - 1.0));
+    add_line(vec3f(pos, -size, 0.f), vec3f(pos, size, 0.f));
+    add_line(vec3f(-size, pos, 0.f), vec3f(size, pos, 0.f));
+  }
+}
+
+CGAL_INLINE_FUNCTION
+void Line_renderer::generate_grid(const vec3f &color, float size, int nb_subdivisions) {
+  for (unsigned int i = 0; i <= nb_subdivisions; ++i) {
+    float pos = float(size * (2.0 * i / nb_subdivisions - 1.0));
+    add_line(vec3f(pos, -size, 0.f), vec3f(pos, size, 0.f), color);
+    add_line(vec3f(-size, pos, 0.f), vec3f(size, pos, 0.f), color);
+  }
+}
+
 } // namespace internal
 } // namespace GLFW
 } // namespace CGAL

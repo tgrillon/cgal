@@ -5,7 +5,9 @@
 
 #include <vector>
 
+#include "input_codes.h"
 #include "utils.h"
+
 #include <CGAL/GLFW/bv_settings.h>
 
 namespace CGAL {
@@ -20,6 +22,8 @@ public:
   enum class Camera_type { ORBITER, FREE_FLY };
 
 public:
+  Camera()=default;
+
   void update(const float delta_time);
 
   void lookat(const vec3f& center, const float size);

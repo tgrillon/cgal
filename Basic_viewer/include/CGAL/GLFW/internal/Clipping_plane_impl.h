@@ -17,7 +17,23 @@ namespace GLFW {
 namespace internal {
 
 CGAL_INLINE_FUNCTION
-void Clipping_plane::update(const float delta_time) {
+Clipping_plane::Clipping_plane(float size) {
+  initialize_buffers();
+  set_width(0.2f);
+  add_line({0.0, 0.0, 0.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, 0.0});
+  constexpr int NB_SUBDIVISIONS = 30;
+  generate_grid(size, NB_SUBDIVISIONS);
+  load_buffers();
+}
+
+CGAL_INLINE_FUNCTION
+void Clipping_plane::render() {
+  if (render_clipping_plane_)
+    draw(); 
+}
+
+CGAL_INLINE_FUNCTION
+void Clipping_plane::on_update(const float delta_time) {
   if (need_update()) {
     float smooth_pitch = pitch_ + rotation_smooth_factor_ * (target_pitch_ - pitch_);
     float smooth_yaw = yaw_ + rotation_smooth_factor_ * (target_yaw_ - yaw_);
@@ -152,6 +168,50 @@ void Clipping_plane::align_to_direction(const vec3f& direction) {
   } else {
     orientation_ = quatf::FromTwoVectors(normal, direction) * orientation_;
   }
+}
+
+CGAL_INLINE_FUNCTION
+void Clipping_plane::switch_display_mode() {
+  switch (display_mode_) {
+  case Display_mode::OFF:
+    display_mode_ = Display_mode::SOLID_HALF_TRANSPARENT_HALF;
+    break;
+  case Display_mode::SOLID_HALF_TRANSPARENT_HALF:
+    display_mode_ = Display_mode::SOLID_HALF_WIRE_HALF;
+    break;
+  case Display_mode::SOLID_HALF_WIRE_HALF:
+    display_mode_ = Display_mode::SOLID_HALF_ONLY;
+    break;
+  case Display_mode::SOLID_HALF_ONLY:
+    display_mode_ = Display_mode::OFF;
+    break;
+  default:
+    break; 
+  }
+}
+
+void Clipping_plane::display_mode(Clipping_plane::Display_mode mode) {
+  display_mode_ = mode; 
+}
+
+CGAL_INLINE_FUNCTION
+void Clipping_plane::toggle_rendering() {
+  render_clipping_plane_ = !render_clipping_plane_; 
+}
+
+CGAL_INLINE_FUNCTION
+Clipping_plane::Display_mode Clipping_plane::display_mode() const {
+  return display_mode_; 
+}
+
+CGAL_INLINE_FUNCTION
+bool Clipping_plane::display_mode_is(Clipping_plane::Display_mode mode) const {
+  return display_mode_ == mode; 
+}
+
+CGAL_INLINE_FUNCTION
+bool Clipping_plane::display_mode_enabled() const {
+  return display_mode_ != Clipping_plane::Display_mode::OFF; 
 }
 
 } // namespace internal

@@ -22,6 +22,9 @@ public:
   void add_line(const vec3f &start, const vec3f &end, const vec3f &color);
   void draw();
 
+  void generate_grid(float size, int nb_subdivisions = 10);
+  void generate_grid(const vec3f &color, float size, int nb_subdivisions = 10);
+
   inline bool are_buffers_loaded() const { return are_buffers_loaded_; }
   inline bool are_buffers_initialized() const {
     return are_buffers_initialized_;

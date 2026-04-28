@@ -21,6 +21,9 @@ namespace GLFW {
 namespace internal {
 
 CGAL_INLINE_FUNCTION
+Animation_controller::Animation_controller() {}
+
+CGAL_INLINE_FUNCTION
 void Animation_controller::start() {
   if (key_frames_.size() <= 1) {
     return;
@@ -96,6 +99,36 @@ void Animation_controller::compute_timestamp() {
   assert(key_frames_.size() > 1);
   timestamp_ = static_cast<float>(duration_.count()) / static_cast<float>(key_frames_.size() - 1);
 }
+
+CGAL_INLINE_FUNCTION 
+bool Animation_controller::is_running() const { 
+  return is_running_; 
+}
+
+CGAL_INLINE_FUNCTION 
+void Animation_controller::clear_buffer() { 
+  key_frames_.clear(); 
+}
+
+CGAL_INLINE_FUNCTION 
+quatf Animation_controller::get_rotation() const { 
+  return interpolated_rotation_; 
+}
+
+CGAL_INLINE_FUNCTION 
+vec3f Animation_controller::get_translation() const { 
+  return interpolated_translation_; 
+}
+
+CGAL_INLINE_FUNCTION 
+float Animation_controller::get_frame() const { 
+  return current_frame_number_; 
+}
+
+CGAL_INLINE_FUNCTION 
+size_t Animation_controller::number_of_key_frames() const { 
+  return key_frames_.size(); 
+} 
 
 } // namespace internal
 } // namespace GLFW

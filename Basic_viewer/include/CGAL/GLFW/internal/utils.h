@@ -5,6 +5,10 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
+
+namespace CGAL {
+namespace GLFW {
+
 using vec2i = Eigen::Vector2i;
 using vec2f = Eigen::Vector2f;
 using vec3f = Eigen::Vector3f;
@@ -15,9 +19,8 @@ using mat4f = Eigen::Matrix4f;
 
 using quatf = Eigen::Quaternionf;
 
-namespace CGAL {
-namespace GLFW {
 namespace internal {
+
 namespace utils {
 
 bool inside_bounding_box_2d(const vec2f& point, const vec2f& pmin, const vec2f& pmax);

@@ -34,29 +34,33 @@ class Animation_controller
 {
 public:
   using Duration_type = std::chrono::milliseconds;
-  using Time_point = std::chrono::_V2::steady_clock::time_point;
+  using Time_point = std::chrono::steady_clock::time_point;
   using Key_frame_buffer = std::vector<Animation_key_frame>;
 
 public:
+  Animation_controller();
+
   void start();
+  
   Animation_key_frame run();
+  
   void stop(const float frame_number);
 
   void add_key_frame(const vec3f& position, const quatf& orientation);
 
   void set_duration(Duration_type duration);
 
-  inline bool is_running() const { return is_running_; }
+  bool is_running() const;
 
-  inline void clear_buffer() { key_frames_.clear(); }
+  void clear_buffer();
 
-  inline quatf get_rotation() const { return interpolated_rotation_; }
+  quatf get_rotation() const; 
 
-  inline vec3f get_translation() const { return interpolated_translation_; }
+  vec3f get_translation() const; 
 
-  inline float get_frame() const { return current_frame_number_; }
+  float get_frame() const; 
 
-  inline size_t number_of_key_frames() const { return key_frames_.size(); }
+  size_t number_of_key_frames() const;
 
 private:
   Animation_key_frame key_frame_interpolation(const float time);

@@ -18,7 +18,6 @@
 # and defines the variable :variable:`CGAL_GLFW_FOUND` and the function
 # :command:`CGAL_setup_CGAL_GLFW_dependencies`.
 #
-
 if(CGAL_SetupCGAL_GLFWDependencies_included)
   return()
 endif()
@@ -27,10 +26,10 @@ set(CGAL_SetupCGAL_GLFWDependencies_included TRUE)
 #.rst:
 # Used Modules
 # ^^^^^^^^^^^^
-#   - :module:`glfw3Config`
-#   - :module:`FindOpenGL`
-#   - :module:`FindEigen3`
-
+#   - :module:`glfw3Config` — provides ``glfw``                                                             
+#   - :module:`FindOpenGL` — provides ``OpenGL::GL``                                                        
+#   - :module:`FindEigen3` — provides ``Eigen3::Eigen``  
+#
 find_package(glfw3 CONFIG QUIET)
 find_package(OpenGL QUIET)
 find_package(Eigen3 3.1.0 QUIET)
@@ -61,7 +60,22 @@ if(NOT CGAL_GLFW_MISSING_DEPS)
   set(CGAL_GLFW_FOUND TRUE)
   set_property(GLOBAL PROPERTY CGAL_GLFW_FOUND TRUE)
 endif()
-
+ 
+#.rst:                                                                                                      
+# Imported Targets                                                              
+# ^^^^^^^^^^^^^^^^
+#
+# Defined when ``CGAL_GLFW_FOUND`` is ``TRUE``:                                                             
+#                                                                                                           
+# ``CGAL::glad``                                                                                            
+#   :prop_tgt:`STATIC` GL loader compiled from the vendored ``gl.c``.                                       
+#   Built with :prop_tgt:`POSITION_INDEPENDENT_CODE` (shared-library                                        
+#   consumers) and :prop_tgt:`EXCLUDE_FROM_ALL` (built only when                                            
+#   actually linked).                                                                                       
+#                                                                                                           
+# ``CGAL::stb``                                                                 
+#   ``INTERFACE`` target for the header-only ``stb_image_write.h``. 
+#
 if(NOT CGAL_GLFW_MISSING_DEPS AND NOT TARGET CGAL_glad)                                                                                                
   add_library(CGAL_glad STATIC
     ${CGAL_BASIC_VIEWER_PACKAGE_DIR}/include/CGAL/GLFW/vendor/glad/src/gl.c)                                                                         
@@ -70,7 +84,14 @@ if(NOT CGAL_GLFW_MISSING_DEPS AND NOT TARGET CGAL_glad)
   set_target_properties(CGAL_glad PROPERTIES 
     POSITION_INDEPENDENT_CODE ON 
     EXCLUDE_FROM_ALL TRUE)                                                                                                                             
-  add_library(CGAL::glad ALIAS    CGAL_glad)                                                                                                              
+  add_library(CGAL::glad ALIAS CGAL_glad)                                                                                                              
+endif()
+
+if(NOT CGAL_GLFW_MISSING_DEPS AND NOT TARGET CGAL_stb)                                                                                                
+  add_library(CGAL_stb INTERFACE)     
+  target_include_directories(CGAL_stb SYSTEM INTERFACE 
+    ${CGAL_BASIC_VIEWER_PACKAGE_DIR}/include/CGAL/GLFW/vendor/stb/include)                                                                     
+  add_library(CGAL::stb ALIAS CGAL_stb)                                                                                                              
 endif()
 
 #.rst:
@@ -89,9 +110,10 @@ endif()
 #
 function(CGAL_setup_CGAL_GLFW_dependencies target)
   target_link_libraries(${target} INTERFACE CGAL::CGAL)
-  target_link_libraries(${target} INTERFACE glfw)
-  target_link_libraries(${target} INTERFACE OpenGL::GL)
-  target_link_libraries(${target} INTERFACE CGAL::glad)
+  target_link_libraries(${target} INTERFACE glfw)       # external 
+  target_link_libraries(${target} INTERFACE OpenGL::GL) 
+  target_link_libraries(${target} INTERFACE CGAL::glad) # vendored, compiled 
+  target_link_libraries(${target} INTERFACE CGAL::stb)  # vendored, header-only 
 
   if(TARGET Eigen3::Eigen)
     target_link_libraries(${target} INTERFACE Eigen3::Eigen)
@@ -99,8 +121,7 @@ function(CGAL_setup_CGAL_GLFW_dependencies target)
     target_include_directories(${target} SYSTEM INTERFACE ${EIGEN3_INCLUDE_DIR})
   endif()
 
-  target_include_directories(${target} SYSTEM INTERFACE
-    ${CGAL_BASIC_VIEWER_PACKAGE_DIR}/include/CGAL/GLFW/vendor/stb/include) 
-
+  # GLFW_INCLUDE_NONE prevents <GLFW/glfw3.h> from pulling <GL/gl.h>,                                     
+  # so <glad/gl.h> stays the single source of GL symbols. Load-bearing. 
   target_compile_definitions(${target} INTERFACE GLFW_INCLUDE_NONE)   
 endfunction()

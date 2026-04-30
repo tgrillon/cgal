@@ -1,9 +1,7 @@
 #ifndef CGAL_GLFW_BASIC_VIEWER_IMPL_H
 #define CGAL_GLFW_BASIC_VIEWER_IMPL_H
 
-#include "bv_settings.h"
 #include <CGAL/config.h>
-#include <memory>
 
 #ifdef CGAL_HEADER_ONLY
 #define CGAL_INLINE_FUNCTION inline
@@ -14,6 +12,11 @@
 #define CGAL_INLINE_FUNCTION
 #endif
 
+#include <memory>
+
+#include <CGAL/GLFW/bv_settings.h>
+#include <CGAL/GLFW/internal/binding.h>
+#include <CGAL/GLFW/internal/event.h>
 #include <CGAL/GLFW/internal/Action_registry.h>
 #include <CGAL/GLFW/internal/Animation_controller.h>
 
@@ -21,17 +24,16 @@ namespace CGAL {
 namespace GLFW {
 
 CGAL_INLINE_FUNCTION
-void Basic_viewer::error_callback(int error, const char *description) {
-  std::cerr << "GLFW returned an error:\n\t" << description << "(" << error << ")\n";
-}
-
-CGAL_INLINE_FUNCTION
 Basic_viewer::Basic_viewer(const Graphics_scene &graphic_scene,
                            const char *title, 
                            const Basic_viewer_options& opts)
-    : scene_(graphic_scene), title_(title), draw_vertices_(opts.init_draw_vertices),
-      draw_edges_(opts.init_draw_edges), draw_faces_(opts.init_draw_faces),
-      draw_rays_(opts.init_draw_rays), draw_lines_(opts.init_draw_lines),
+    : scene_(graphic_scene), 
+      title_(title), 
+      draw_vertices_(opts.init_draw_vertices),
+      draw_edges_(opts.init_draw_edges), 
+      draw_faces_(opts.init_draw_faces),
+      draw_rays_(opts.init_draw_rays), 
+      draw_lines_(opts.init_draw_lines),
       use_mono_color_(opts.init_use_mono_color),
       inverse_normal_(opts.init_inverse_normal), flat_shading_(opts.init_flat_shading) 
 {
@@ -57,36 +59,28 @@ Basic_viewer::~Basic_viewer() {
   shader_triangles_.destroy();
 
   clipping_plane_.reset(nullptr); 
-  window_.reset(nullptr);
-
+  
   glDeleteBuffers(NB_GL_BUFFERS, vbo_);
   glDeleteVertexArrays(NB_VAO_BUFFERS, vao_);
-  glfwTerminate();
+
+  window_.reset(nullptr);
 }
 
 CGAL_INLINE_FUNCTION
 bool Basic_viewer::setup_context(bool hidden) {
-  // Initialise GLFW
-  if (!glfwInit()) {
-    std::cerr << "Could not start GLFW\n";
-    return false;
-  }
+  const internal::Window_specification spec{
+    .title = title_,
+    .width = CGAL_WINDOW_WIDTH_INIT,
+    .height = CGAL_WINDOW_HEIGHT_INIT,
+    .gl_major = 4,
+    .gl_minor = 3,
+    .hidden = hidden 
+  };
 
-  const internal::Window_specification spec{.title = title_,
-                                  .width = CGAL_WINDOW_WIDTH_INIT,
-                                  .height = CGAL_WINDOW_HEIGHT_INIT,
-                                  .gl_major = 4,
-                                  .gl_minor = 3,
-                                  .hidden = hidden};
-
-  window_ = std::make_unique<internal::Context_window>(spec);
-
-  glfwSetErrorCallback(error_callback);
+  window_ = std::make_unique<internal::Window>(spec);
 
   if (!window_->handle())
     return false;
-
-  aspect_ratio_ = static_cast<float>(window_->framebuffer_width()) / window_->framebuffer_height();
 
   int opengl_major_version, opengl_minor_version;
   glGetIntegerv(GL_MAJOR_VERSION, &opengl_major_version);
@@ -128,13 +122,43 @@ bool Basic_viewer::setup_inputs() {
   if (!window_)
     return false;
 
-  glfwSetWindowUserPointer(window_->handle(), this);
+  auto callback = [this](const internal::Event& event) {
+    internal::Event_context context{ .viewer = *this, .event = event };
+    if (action_registry_->dispatch(context)) {
+      need_update_ = true;
+    } 
+  };
 
-  window_->on_key(key_callback);
-  window_->on_mouse_btn(mouse_btn_callback);
-  window_->on_cursor_move(cursor_callback);
-  window_->on_scroll(scroll_callback);
-  window_->on_resize(framebuffer_size_callback);
+  window_->on_key(callback);
+  window_->on_mouse_btn(callback);
+  window_->on_scroll(callback);
+
+  window_->on_resize([this](const internal::Resize_event& event) {
+    glViewport(0, 0, event.width, event.height);
+    need_update_ = true;
+  });
+
+  window_->on_cursor_move([this](const internal::Cursor_event& e) {
+    float dx = (e.xpos - last_x_) / window_->aspect_ratio();                                                
+    float dy = (e.ypos - last_y_) / window_->aspect_ratio();                                                
+    last_x_ = e.xpos;
+    last_y_ = e.ypos;                                                                             
+                                                                                                  
+    auto mods = internal::Input::active_modifiers(window_->handle());
+    action_registry_->for_each_hold<internal::Mouse_btn_binding>(                                 
+      [&](const internal::Mouse_btn_binding& b) -> bool {                                         
+        if (internal::Input::is_mouse_button_pressed(window_->handle(), b.button) && mods == b.mods) {
+          internal::Drag_event ev{ b.button, b.mods, dx, dy };                  
+          internal::Event_context ctx{ .viewer = *this, .event = ev };                            
+          if (action_registry_->dispatch(ctx)) {
+            need_update_ = true;             
+          } 
+
+          return true;                
+        }
+        return false;               
+      });
+  });
 
   action_registry_->print_help();
 
@@ -457,7 +481,7 @@ CGAL::Plane_3<Basic_viewer::Local_kernel> Basic_viewer::clipping_plane() const {
 CGAL_INLINE_FUNCTION
 void Basic_viewer::compute_model_view_projection_matrix(const float delta_time) {
   camera_->update(delta_time);
-  clipping_plane_->on_update(delta_time);
+  clipping_plane_->update(delta_time);
 
   if (animation_controller_->is_running()) {
     internal::Animation_key_frame animation_frame = animation_controller_->run();
@@ -634,13 +658,13 @@ void Basic_viewer::update_world_axis_uniforms() {
   mat4f rotation_4x4 = mat4f::Identity();
   rotation_4x4.block<3, 3>(0, 0) = rotation;
 
-  float half_width = aspect_ratio_ * 0.1f;
+  float half_width = window_->aspect_ratio() * 0.1f;
   float half_height = 0.1f;
   mat4f projection = internal::utils::ortho(-half_width, half_width, -half_height,
                                   half_height, -1.0f, 1.0f);
 
   mat4f translation = internal::transform::translation(
-      vec3f(half_width - 0.1f * aspect_ratio_, half_height - 0.1f, 0.0f));
+      vec3f(half_width - 0.1f * window_->aspect_ratio(), half_height - 0.1f, 0.0f));
 
   mat4f mvp = projection * rotation_4x4 * translation;
 
@@ -985,130 +1009,6 @@ void Basic_viewer::render_clipping_plane() {
 }
 
 CGAL_INLINE_FUNCTION
-void Basic_viewer::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-  auto viewer = static_cast<Basic_viewer*>(glfwGetWindowUserPointer(window));
-  
-  // Re-map to keycap-based key code so bindings are layout-independent.
-  if (const char* name = glfwGetKeyName(key, scancode)) {
-    if (name && name[0] != '\0' && name[1] == '\0') {
-      char c = name[0]; 
-      if (c >= 'a' && c <= 'z') {
-        c = static_cast<int>(c - 'a' + 'A'); 
-      }
-      // Only override for the printable ASCII range that overlaps with Key_code. 
-      if (c >= 0x20 /*32*/ && c <= 0x60 /*96*/) {
-        key = static_cast<int>(c); 
-      }
-    }
-  }
-
-  internal::Key_event event{
-    .key = static_cast<internal::Key_code>(key), 
-    .scancode = scancode, 
-    .action = static_cast<internal::Action>(action), 
-    .mods = static_cast<internal::Modifier>(mods)};
-
-  internal::Event_context context{ .viewer = *viewer, .event = event };
-
-  if (viewer->action_registry_->dispatch(context)) viewer->need_update_ = true;
-}
-
-CGAL_INLINE_FUNCTION
-void Basic_viewer::cursor_callback(GLFWwindow *window, double xpos, double ypos) {
-  auto viewer = static_cast<Basic_viewer*>(glfwGetWindowUserPointer(window));
-  
-  float dx = xpos - viewer->last_x_; 
-  float dy = ypos - viewer->last_y_;
-  
-  viewer->last_x_ = xpos;  
-  viewer->last_y_ = ypos;  
-
-  dx /= viewer->aspect_ratio_;
-  dy /= viewer->aspect_ratio_;
-
-  internal::Modifier mods = internal::Input::active_modifiers(window);
-  viewer->action_registry_->for_each_hold<internal::Mouse_btn_binding>([&](const internal::Mouse_btn_binding& binding) -> bool {
-    if (internal::Input::is_mouse_button_pressed(window, binding.button) && mods == binding.mods) {
-      internal::Drag_event event{ binding.button, binding.mods, dx, dy };
-      internal::Event_context context { .viewer = *viewer, .event = event };
-      
-      if (viewer->action_registry_->dispatch(context)) viewer->need_update_ = true;
-      return true; 
-    }
-
-    return false; 
-  });
-}
-
-CGAL_INLINE_FUNCTION
-void Basic_viewer::mouse_btn_callback(GLFWwindow *window, int button, int action, int mods) {
-  auto viewer = static_cast<Basic_viewer*>(glfwGetWindowUserPointer(window));
-
-  if (action != GLFW_PRESS) {
-    internal::Mouse_btn_event event{
-      .button = static_cast<internal::Mouse_button>(button), 
-      .action = static_cast<internal::Action>(action), 
-      .mods = static_cast<internal::Modifier>(mods) };
-
-    internal::Event_context context{ .viewer = *viewer, .event = event };
-
-    if (viewer->action_registry_->dispatch(context)) viewer->need_update_ = true;
-    return;
-  }
-
-  // Handle double click event
-  auto &tracker = viewer->click_tracker_;
-  double current_time = glfwGetTime();
-  bool double_click;
-  if (button == tracker.last_button &&
-      (current_time - tracker.last_press_time) <
-          Click_tracker::DOUBLE_CLICK_THRESHOLD) {
-    double_click = true;
-  } else {
-    double_click = false;
-  }
-
-  tracker.last_press_time = double_click ? -1.0 : current_time;
-  tracker.last_button = button;
-
-  internal::Mouse_btn_event event{
-    .button = static_cast<internal::Mouse_button>(button), 
-    .action = static_cast<internal::Action>(action), 
-    .mods = static_cast<internal::Modifier>(mods), 
-    .double_click = double_click};
-
-  internal::Event_context context{ .viewer = *viewer, .event = event };
-
-  if (viewer->action_registry_->dispatch(context)) viewer->need_update_ = true;
-}
-
-CGAL_INLINE_FUNCTION
-void Basic_viewer::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
-  auto viewer = static_cast<Basic_viewer*>(glfwGetWindowUserPointer(window));
-  viewer->window_->framebuffer_size() = { width, height };
-  viewer->aspect_ratio_ = static_cast<float>(width) / height;
-  glViewport(0, 0, width, height);
-  viewer->need_update_ = true;
-}
-
-CGAL_INLINE_FUNCTION
-void Basic_viewer::scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
-  auto viewer = static_cast<Basic_viewer*>(glfwGetWindowUserPointer(window));
-
-  // Add modifier information to scroll event
-  internal::Modifier mods = internal::Input::active_modifiers(window); 
-
-  internal::Scroll_event event{
-    .xoffset = xoffset, 
-    .yoffset = yoffset, 
-    .mods = static_cast<internal::Modifier>(mods)};
-  
-  internal::Event_context context{ .viewer = *viewer, .event = event };
-
-  if (viewer->action_registry_->dispatch(context)) viewer->need_update_ = true;
-}
-
-CGAL_INLINE_FUNCTION
 void Basic_viewer::print_application_state(float &elapsed_time, const float delta_time) {
   elapsed_time += delta_time;
   if (elapsed_time * 1000 > 100) // update terminal display each 100ms
@@ -1341,7 +1241,7 @@ void Basic_viewer::capture_screenshot(const std::string &filepath,
 
 CGAL_INLINE_FUNCTION
 void Basic_viewer::zoom_camera(float scroll_y) {
-  float yoffset = scroll_y / aspect_ratio_;
+  float yoffset = scroll_y / window_->aspect_ratio();
   camera_->move(8.f * yoffset * CGAL_CAMERA_ZOOM_SPEED);
   clipping_plane_->set_size(camera_->get_size());
 }
@@ -1349,7 +1249,7 @@ void Basic_viewer::zoom_camera(float scroll_y) {
 CGAL_INLINE_FUNCTION
 void Basic_viewer::change_camera_fov(float scroll_y) {
   if (camera_->is_orthographic()) return;
-  float yoffset = scroll_y / aspect_ratio_;
+  float yoffset = scroll_y / window_->aspect_ratio();
   camera_->increase_fov(yoffset);
   clipping_plane_->set_size(camera_->get_size());
 }

@@ -64,10 +64,6 @@ public:
   /// \name Setters
   /// @{
 
-  /// \brief Sets the window size.
-  /// \param size The size of the window as a 2D vector.
-  void window_size(const Eigen::Vector2f &s);
-
   /// \brief Sets the size of vertices.
   /// \param s The size of vertices.
   void size_vertices(float s);

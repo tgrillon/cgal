@@ -29,7 +29,7 @@ public:
 
   void render();
   
-  void on_update(const float delta_time);
+  void update(const float delta_time);
 
   void reset_all();
   void reset_position();

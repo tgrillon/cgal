@@ -33,7 +33,7 @@ void Clipping_plane::render() {
 }
 
 CGAL_INLINE_FUNCTION
-void Clipping_plane::on_update(const float delta_time) {
+void Clipping_plane::update(const float delta_time) {
   if (need_update()) {
     float smooth_pitch = pitch_ + rotation_smooth_factor_ * (target_pitch_ - pitch_);
     float smooth_yaw = yaw_ + rotation_smooth_factor_ * (target_yaw_ - yaw_);

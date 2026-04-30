@@ -1,5 +1,3 @@
-#include <CGAL/GLFW/internal/Clipping_plane.h>
-#include <CGAL/GLFW/internal/Context_window.h>
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/draw_surface_mesh.h>

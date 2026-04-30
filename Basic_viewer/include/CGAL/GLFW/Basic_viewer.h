@@ -32,7 +32,7 @@
 #include <CGAL/GLFW/internal/Animation_controller.h>
 #include <CGAL/GLFW/internal/Camera.h>
 #include <CGAL/GLFW/internal/Clipping_plane.h>
-#include <CGAL/GLFW/internal/Context_window.h>
+#include <CGAL/GLFW/internal/Window.h>
 #include <CGAL/GLFW/internal/Input.h>
 #include <CGAL/GLFW/internal/Line_renderer.h>
 #include <CGAL/GLFW/internal/Shader.h>
@@ -84,10 +84,6 @@ public:
   void make_screenshot(const std::string &file_path);
 
   /***** Window ****/
-
-  inline void window_size(const vec2f &s) {
-    framebuffer_size_callback(window_->handle(), s.x(), s.y());
-  }
 
   inline void two_dimensional() { camera_->set_orthographic(); }
 
@@ -271,20 +267,6 @@ public:
   inline const Graphics_scene &graphics_scene() const { return scene_; }
 
 private:
-  /***** GLFW callbacks ****/
-
-  static void key_callback(GLFWwindow *window, int key, int scancode,
-                           int action, int mods);
-  static void cursor_callback(GLFWwindow *window, double xpos, double ypo);
-  static void mouse_btn_callback(GLFWwindow *window, int button, int action,
-                                 int mods);
-  static void framebuffer_size_callback(GLFWwindow *window, int width,
-                                        int height);
-  static void scroll_callback(GLFWwindow *window, double xoffset,
-                              double yoffset);
-  static void error_callback(int error, const char *description);
-  static GLFWwindow *create_window(int width, int height, const char *title,
-                                   bool hidden = false);
 
   /***** Setup ****/
 
@@ -388,7 +370,7 @@ private:
   vec3f color_to_normalized_vec3(const CGAL::IO::Color &c) const;
 
 private:
-  std::unique_ptr<internal::Context_window> window_{nullptr};
+  std::unique_ptr<internal::Window> window_{nullptr};
 
   const Graphics_scene &scene_;
 
@@ -494,14 +476,6 @@ private:
     VAO_FACES,
     NB_VAO_BUFFERS
   };
-
-  struct Click_tracker {
-    double last_press_time{-1.0};
-    int last_button{-1};
-    static constexpr double DOUBLE_CLICK_THRESHOLD = 0.3; // 300ms
-  };
-
-  Click_tracker click_tracker_;
 
   unsigned int vao_[NB_VAO_BUFFERS];
 

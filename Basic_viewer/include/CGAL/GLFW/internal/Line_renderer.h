@@ -7,41 +7,69 @@
 
 #include <glad/gl.h>
 
-#include "utils.h"
+#include "math_types.h"
 
 namespace CGAL {
 namespace GLFW {
 namespace internal {
 
-class Line_renderer {
-public:
-  void delete_buffers();
-  void initialize_buffers();
-  void load_buffers();
-  void add_line(const vec3f &start, const vec3f &end);
-  void add_line(const vec3f &start, const vec3f &end, const vec3f &color);
-  void draw();
+struct Grid_data {
+  vec3f normal = vec3f::UnitZ();
+  float size = 1.0f; 
+  unsigned int subdivisions = 10; 
+  vec3f color = vec3f::Zero();
+};
 
-  void generate_grid(float size, int nb_subdivisions = 10);
-  void generate_grid(const vec3f &color, float size, int nb_subdivisions = 10);
+struct Line_data {
+  vec3f start;
+  vec3f end;
+  vec3f color = vec3f::Zero();
+};
 
-  inline bool are_buffers_loaded() const { return are_buffers_loaded_; }
-  inline bool are_buffers_initialized() const {
-    return are_buffers_initialized_;
-  }
-
-  inline void set_width(const float width) { width_ = width; }
+class Line_buffer {
+public: 
+  Line_buffer& add_line(const Line_data& data); 
+  Line_buffer& add_grid(const Grid_data& data = {}); 
+  Line_buffer& width(float w);
+  
+  inline float width() const { return width_; } 
+  inline size_t vertex_count() const { return data_.size() / 6; }
+  inline size_t data_count() const { return data_.size(); } 
+  inline const float* vertex_data() const { return data_.data(); }; 
 
 private:
-  std::vector<float> vertices_{};
+  std::vector<float> data_{}; // 6 components per vertex (3 for its position + 3 for its color)   
+  float width_{1.0f}; 
+};
+
+class Line_renderer {
+public:
+  Line_renderer() = default; 
+
+  Line_renderer(const Line_renderer&) = delete; 
+  Line_renderer& operator=(const Line_renderer&) = delete; 
+
+  Line_renderer(Line_renderer&& other) noexcept; 
+  Line_renderer& operator=(Line_renderer&& other) noexcept; 
+
+  ~Line_renderer(); 
+  
+  void draw() const;
+
+  bool is_valid() const; 
+  
+public:
+  static Line_renderer create(const Line_buffer& buffer); 
+
+private: 
+  void delete_buffers();
+
+private:
+  GLuint vao_{0};
+  GLuint vbo_{0};
 
   float width_{1.0f};
-
-  unsigned int vertex_array_{0};
-  unsigned int vertex_buffer_{0};
-
-  bool are_buffers_loaded_{false};
-  bool are_buffers_initialized_{false};
+  size_t vertex_count_{0};
 };
 
 } // namespace internal

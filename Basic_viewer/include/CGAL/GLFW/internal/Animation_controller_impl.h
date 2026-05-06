@@ -16,6 +16,8 @@
 #include <cmath>
 #include <chrono>
 
+#include "math_utils.h"
+
 namespace CGAL {
 namespace GLFW {
 namespace internal {
@@ -75,7 +77,7 @@ void Animation_controller::set_duration(Duration_type duration) {
 
 CGAL_INLINE_FUNCTION
 Animation_key_frame Animation_controller::key_frame_interpolation(const float time) {
-  assert(!utils::equal_float(timestamp_, 0));
+  CGAL_precondition(!utils::equal_float(timestamp_, 0));
 
   float t = time / timestamp_;
 

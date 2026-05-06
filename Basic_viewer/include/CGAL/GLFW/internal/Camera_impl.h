@@ -17,7 +17,7 @@
 #include <utility>
 #include <algorithm>
 
-#include <Eigen/Geometry>
+#include "math_utils.h"
 
 namespace CGAL {
 namespace GLFW {

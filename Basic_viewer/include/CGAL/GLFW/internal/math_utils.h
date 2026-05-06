@@ -1,24 +1,10 @@
-#ifndef CGAL_GLFW_INTERNAL_UTILS_H
-#define CGAL_GLFW_INTERNAL_UTILS_H
+#ifndef CGAL_GLFW_INTERNAL_MATH_UTILS_H
+#define CGAL_GLFW_INTERNAL_MATH_UTILS_H
 
-#include <Eigen/Core>
-#include <Eigen/Dense>
-#include <Eigen/Geometry>
-
+#include "math_types.h"
 
 namespace CGAL {
 namespace GLFW {
-
-using vec2i = Eigen::Vector2i;
-using vec2f = Eigen::Vector2f;
-using vec3f = Eigen::Vector3f;
-using vec4f = Eigen::Vector4f;
-
-using mat3f = Eigen::Matrix3f;
-using mat4f = Eigen::Matrix4f;
-
-using quatf = Eigen::Quaternionf;
-
 namespace internal {
 
 namespace utils {
@@ -76,12 +62,13 @@ mat4f translation(const float x, const float y, const float z);
 mat4f viewport(const float width, const float height);
 
 } // namespace transform
+
 } // namespace internal
 } // namespace GLFW
 } // namespace CGAL
 
 #ifdef CGAL_HEADER_ONLY
-#include "utils_impl.h"
-#endif // CGAL_HEADER_ONLY
+#include "math_utils_impl.h"
+#endif 
 
-#endif // CGAL_GLFW_INTERNAL_UTILS_H
+#endif // CGAL_GLFW_INTERNAL_MATH_UTILS_H

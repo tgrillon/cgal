@@ -6,7 +6,7 @@
 #include <vector>
 #include <chrono>
 
-#include "utils.h"
+#include "math_types.h"
 
 namespace CGAL {
 namespace GLFW {

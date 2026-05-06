@@ -9,7 +9,7 @@
 #include <string>
 
 #include "event.h"
-#include "utils.h"
+#include "math_types.h"
 
 namespace CGAL {
 namespace GLFW {

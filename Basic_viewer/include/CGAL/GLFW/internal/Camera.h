@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "input_codes.h"
-#include "utils.h"
+#include "math_types.h"
 
 #include <CGAL/GLFW/bv_settings.h>
 

@@ -1,25 +1,21 @@
-#ifndef CGAL_GLFW_INTERNAL_UTILS_IMPL_H
-#define CGAL_GLFW_INTERNAL_UTILS_IMPL_H
+#ifndef CGAL_GLFW_INTERNAL_MATH_UTILS_IMPL_H
+#define CGAL_GLFW_INTERNAL_MATH_UTILS_IMPL_H
+
+#include <CGAL/config.h>
 
 #ifdef CGAL_HEADER_ONLY
 #define CGAL_INLINE_FUNCTION inline
 
-#include "utils.h"
+#include "math_utils.h"
 
-#else
+#else 
 #define CGAL_INLINE_FUNCTION
-#endif // CGAL_HEADER_ONLY
-
-#include <cmath>
-#include <chrono>
-
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/Dense>
-#include <eigen3/Eigen/Geometry>
+#endif 
 
 namespace CGAL {
 namespace GLFW {
 namespace internal {
+
 namespace utils {
 
 CGAL_INLINE_FUNCTION
@@ -233,8 +229,10 @@ mat4f viewport(const float width, const float height) {
 }
 
 } // namespace transform
+
 } // namespace internal
 } // namespace GLFW
 } // namespace CGAL
 
-#endif // CGAL_GLFW_INTERNAL_UTILS_IMPL_H
+
+#endif // CGAL_GLFW_INTERNAL_MATH_UTILS_IMPL_H

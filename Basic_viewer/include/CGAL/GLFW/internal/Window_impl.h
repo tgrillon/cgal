@@ -6,20 +6,22 @@
 #ifdef CGAL_HEADER_ONLY
 #define CGAL_INLINE_FUNCTION inline
 
-#include <stdexcept>
-#include <iostream>
-
 #include "Window.h"
-#include "Input.h"
-#include "event.h"
 
 #else
 #define CGAL_INLINE_FUNCTION
 #endif // CGAL_HEADER_ONLY
 
-#include <GLFW/glfw3.h>
+#include <stdexcept>
+#include <iostream>
 #include <optional>
+
 #include <glad/gl.h>
+#include <GLFW/glfw3.h>
+
+#include "input/Input.h"
+#include "input/event.h"
+#include "math/math_types.h"
 
 namespace CGAL {
 namespace GLFW {
@@ -147,6 +149,20 @@ float Window::aspect_ratio() const {
 CGAL_INLINE_FUNCTION
 void Window::window_size(int &width, int &height) const {
   glfwGetWindowSize(handle_, &width, &height);
+}
+
+CGAL_INLINE_FUNCTION
+int Window::window_width() const {
+  int w, h; 
+  window_size(w, h);
+  return w; 
+} 
+
+CGAL_INLINE_FUNCTION
+int Window::window_height() const {
+  int w, h; 
+  window_size(w, h);
+  return h; 
 }
 
 CGAL_INLINE_FUNCTION

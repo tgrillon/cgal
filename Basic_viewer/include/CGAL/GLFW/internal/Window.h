@@ -8,21 +8,21 @@
 #include <optional>
 #include <string>
 
-#include "event.h"
-#include "math_types.h"
+#include "input/event.h"
+#include "math/math_types.h"
 
 namespace CGAL {
 namespace GLFW {
 namespace internal {
 
-struct Window_specification {
+	struct Window_specification {
 	std::string title;
-	int width = 1280; 
-	int height = 720; 
-	int gl_major = 3; 
-	int gl_minor = 3; 
+	int width = CGAL_GLFW_DEFAULT_WINDOW_HEIGHT; 
+	int height = CGAL_GLFW_DEFAULT_WINDOW_HEIGHT; 
+	int gl_major = CGAL_GLFW_OPENGL_MAJOR_CORE; 
+	int gl_minor = CGAL_GLFW_OPENGL_MINOR_CORE; 
 	int gl_profile = GLFW_OPENGL_CORE_PROFILE;
-	int samples = CGAL_WINDOW_SAMPLES;
+	int samples = CGAL_GLFW_WINDOW_SAMPLES;
 	bool debug_context = true; 
 	bool forward_compat = true; 
 	bool use_vsync = true; 
@@ -50,6 +50,8 @@ public:
 
 	void update() const; 
 
+	bool is_valid() const { return handle_ != nullptr; }
+
 	GLFWwindow* handle() const;
 
   void on_key(Key_event_fun key_callback);
@@ -63,6 +65,8 @@ public:
 	
 	void window_pos(int& xpos, int& ypos) const; 
 	void window_size(int& width, int& height) const; 
+	int window_width() const; 
+	int window_height() const; 
 	
 	float aspect_ratio() const;
 
@@ -91,7 +95,7 @@ private:
 	std::string title_{}; 
 
 	struct Window_rect { int x, y, width, height; }; 
-	std::optional<Window_rect> window_rect_{ std::nullopt }; 
+	std::optional<Window_rect> window_rect_{}; 
 
 	vec2i framebuffer_size_{}; 
 	float aspect_ratio_{ 1.0f }; 

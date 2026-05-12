@@ -16,7 +16,7 @@
 #include <cmath>
 #include <chrono>
 
-#include "math_utils.h"
+#include <CGAL/GLFW/internal/math/math_utils.h>
 
 namespace CGAL {
 namespace GLFW {

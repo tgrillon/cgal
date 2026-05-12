@@ -17,7 +17,7 @@
 #include <utility>
 #include <algorithm>
 
-#include "math_utils.h"
+#include <CGAL/GLFW/internal/math/math_utils.h>
 
 namespace CGAL {
 namespace GLFW {
@@ -166,7 +166,7 @@ mat4f Camera::view() const {
 }
 
 CGAL_INLINE_FUNCTION
-mat4f Camera::projection(const float width, const float height) {
+mat4f Camera::projection(float width, float height) const {
   width_ = width;
   height_ = height;
 
@@ -249,12 +249,12 @@ CGAL_INLINE_FUNCTION
 void Camera::reset_all() {
   reset_position();
   reset_orientation();
-  fov_                       = CGAL_CAMERA_FOV;
-  zoom_smooth_factor_        = CGAL_CAMERA_ZOOM_SMOOTHNESS;
-  rotation_smooth_factor_    = CGAL_CAMERA_ROTATION_SMOOTHNESS;
-  translation_smooth_factor_ = CGAL_CAMERA_TRANSLATION_SMOOTHNESS;
-  translation_speed_         = CGAL_CAMERA_TRANSLATION_SPEED;
-  rotation_speed_            = CGAL_CAMERA_ROTATION_SPEED;
+  fov_                       = CGAL_GLFW_CAMERA_FOV;
+  zoom_smooth_factor_        = CGAL_GLFW_CAMERA_ZOOM_SMOOTHNESS;
+  rotation_smooth_factor_    = CGAL_GLFW_CAMERA_ROTATION_SMOOTHNESS;
+  translation_smooth_factor_ = CGAL_GLFW_CAMERA_TRANSLATION_SMOOTHNESS;
+  translation_speed_         = CGAL_GLFW_CAMERA_TRANSLATION_SPEED;
+  rotation_speed_            = CGAL_GLFW_CAMERA_ROTATION_SPEED;
   reset_size();
 }
 

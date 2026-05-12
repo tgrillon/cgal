@@ -22,17 +22,15 @@ namespace internal {
 
 CGAL_INLINE_FUNCTION
 Shader_program::Shader_program(Shader_program&& other) noexcept : 
-  cached_uniforms_(std::move(other.cached_uniforms_)), program_id_(other.program_id_) {
-    other.program_id_ = 0; 
-} 
+  cached_uniforms_(std::move(other.cached_uniforms_)), 
+  program_id_(std::exchange(other.program_id_, 0)) {} 
 
 CGAL_INLINE_FUNCTION
 Shader_program& Shader_program::operator=(Shader_program&& other) noexcept {
   if (&other != this) {
     destroy(); 
     cached_uniforms_ = std::move(other.cached_uniforms_);
-    program_id_ = other.program_id_; 
-    other.program_id_ = 0; 
+    program_id_ = std::exchange(other.program_id_, 0); 
   }
 
   return *this; 

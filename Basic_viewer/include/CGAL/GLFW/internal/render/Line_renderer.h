@@ -7,7 +7,9 @@
 
 #include <glad/gl.h>
 
-#include "math_types.h"
+#include <CGAL/GLFW/internal/math/math_types.h>
+#include <CGAL/GLFW/internal/render/Vertex_array.h>
+#include <CGAL/GLFW/internal/render/Gl_buffer.h>
 
 namespace CGAL {
 namespace GLFW {
@@ -32,10 +34,11 @@ public:
   Line_buffer& add_grid(const Grid_data& data = {}); 
   Line_buffer& width(float w);
   
-  inline float width() const { return width_; } 
-  inline size_t vertex_count() const { return data_.size() / 6; }
-  inline size_t data_count() const { return data_.size(); } 
-  inline const float* vertex_data() const { return data_.data(); }; 
+  float width() const { return width_; } 
+  size_t vertex_count() const { return data_.size() / 6; }
+  size_t data_count() const { return data_.size(); } 
+  const float* vertex_data() const { return data_.data(); }; 
+  const std::vector<float>& vertex_vector() const { return data_; }; 
 
 private:
   std::vector<float> data_{}; // 6 components per vertex (3 for its position + 3 for its color)   
@@ -49,24 +52,21 @@ public:
   Line_renderer(const Line_renderer&) = delete; 
   Line_renderer& operator=(const Line_renderer&) = delete; 
 
-  Line_renderer(Line_renderer&& other) noexcept; 
-  Line_renderer& operator=(Line_renderer&& other) noexcept; 
+  Line_renderer(Line_renderer&& other) noexcept = default; 
+  Line_renderer& operator=(Line_renderer&& other) noexcept = default; 
 
-  ~Line_renderer(); 
+  ~Line_renderer() = default; 
   
   void draw() const;
 
-  bool is_valid() const; 
+  bool is_valid() const { return vao_.is_valid() && vertex_count_ > 0; } 
   
 public:
-  static Line_renderer create(const Line_buffer& buffer); 
-
-private: 
-  void delete_buffers();
+  static Line_renderer create(const Line_buffer& data); 
 
 private:
-  GLuint vao_{0};
-  GLuint vbo_{0};
+  Vertex_array vao_{};
+  Gl_buffer vbo_{};
 
   float width_{1.0f};
   size_t vertex_count_{0};

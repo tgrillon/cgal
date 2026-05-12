@@ -13,8 +13,6 @@
 #define CGAL_INLINE_FUNCTION
 #endif // CGAL_HEADER_ONLY
 
-#include "math_types.h"
-
 namespace CGAL {
 namespace GLFW {
 namespace internal {
@@ -65,89 +63,44 @@ Line_buffer& Line_buffer::width(float w) {
 //-------------- LINE RENDERER IMPL --------------
 
 CGAL_INLINE_FUNCTION
-Line_renderer::Line_renderer(Line_renderer&& other) noexcept 
-  : vao_(other.vao_), vbo_(other.vbo_), width_(other.width_), vertex_count_(other.vertex_count_) {
-  other.vao_ = 0; 
-  other.vbo_ = 0;  
-}
+Line_renderer Line_renderer::create(const Line_buffer& data) {
+  Vertex_array vao; 
+  Gl_buffer vbo; 
 
-CGAL_INLINE_FUNCTION
-Line_renderer& Line_renderer::operator=(Line_renderer&& other) noexcept {
-  if (&other != this) {
-    delete_buffers(); 
-    vao_ = other.vao_; 
-    other.vao_ = 0; 
-    vbo_ = other.vbo_;
-    other.vbo_ = 0;
-      
-    width_ = other.width_;
-    vertex_count_ = other.vertex_count_;
-  }
-  return *this; 
-}
-
-CGAL_INLINE_FUNCTION
-Line_renderer::~Line_renderer() {
-  delete_buffers();
-}
-
-CGAL_INLINE_FUNCTION
-Line_renderer Line_renderer::create(const Line_buffer& buffer) {
-  GLuint vao, vbo; 
-  glGenVertexArrays(1, &vao);
-  glGenBuffers(1, &vbo);
-
-  glBindVertexArray(vao);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, 
-               buffer.vertex_count() * 6 * sizeof(float), 
-               buffer.vertex_data(), GL_STATIC_DRAW);
+  vao.bind(); 
+  vbo.bind(GL_ARRAY_BUFFER);
+  vbo.upload<float>(GL_ARRAY_BUFFER, data.vertex_vector());
 
   // vertex attribute
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 
-                        6 * sizeof(float), nullptr);
-
+  vao.set_attribute(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float)); 
   // color attribute
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 
-                        6 * sizeof(float), reinterpret_cast<const void *>(12));
+  vao.set_attribute(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 12); 
 
-  glBindVertexArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  vao.unbind(); 
+  vbo.unbind(GL_ARRAY_BUFFER);
 
   Line_renderer renderer;
-  renderer.vao_ = vao;  
-  renderer.vbo_ = vbo;  
-  renderer.width_ = buffer.width();  
-  renderer.vertex_count_ = buffer.vertex_count();  
+  renderer.vao_ = std::move(vao);  
+  renderer.vbo_ = std::move(vbo);  
+  renderer.width_ = data.width();  
+  renderer.vertex_count_ = data.vertex_count();  
   return renderer; 
 }
 
 CGAL_INLINE_FUNCTION
 void Line_renderer::draw() const {
-  glBindVertexArray(vao_);
+  CGAL_precondition_msg(is_valid(), 
+    "Line_renderer must be initialized using Line_renderer::create before calling Line_renderer::draw");
+  
+  vao_.bind();
 
   glLineWidth(width_);
   glDrawArrays(GL_LINES, 
                0, 
                static_cast<GLsizei>(vertex_count_));
   
-  glBindVertexArray(0);
+  vao_.unbind();
   glLineWidth(1.0f);
-}
-
-CGAL_INLINE_FUNCTION
-bool Line_renderer::is_valid() const {
-  return vao_ != 0; 
-} 
-
-CGAL_INLINE_FUNCTION
-void Line_renderer::delete_buffers() {
-  glDeleteVertexArrays(1, &vao_);
-  vao_ = 0; 
-  glDeleteBuffers(1, &vbo_);
-  vbo_ = 0; 
 }
 
 } // namespace internal

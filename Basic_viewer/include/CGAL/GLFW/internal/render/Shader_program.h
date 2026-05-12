@@ -7,7 +7,7 @@
 
 #include <glad/gl.h>
 
-#include "math_types.h"
+#include <CGAL/GLFW/internal/math/math_types.h>
 
 namespace CGAL {
 namespace GLFW {

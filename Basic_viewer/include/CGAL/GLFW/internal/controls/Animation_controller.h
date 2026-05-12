@@ -1,12 +1,10 @@
 #ifndef CGAL_GLFW_INTERNAL_ANIMATION_CONTROLLER_H
 #define CGAL_GLFW_INTERNAL_ANIMATION_CONTROLLER_H
 
-#include <CGAL/config.h>
-
 #include <vector>
 #include <chrono>
 
-#include "math_types.h"
+#include <CGAL/GLFW/internal/math/math_types.h>
 
 namespace CGAL {
 namespace GLFW {

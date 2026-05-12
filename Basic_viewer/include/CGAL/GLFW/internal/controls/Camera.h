@@ -5,8 +5,8 @@
 
 #include <vector>
 
-#include "input_codes.h"
-#include "math_types.h"
+#include <CGAL/GLFW/internal/input/input_codes.h>
+#include <CGAL/GLFW/internal/math/math_types.h>
 
 #include <CGAL/GLFW/bv_settings.h>
 
@@ -24,7 +24,7 @@ public:
 public:
   Camera()=default;
 
-  void update(const float delta_time);
+  void update(const float dt);
 
   void lookat(const vec3f& center, const float size);
   void lookat(const vec3f& pmin, const vec3f& pmax);
@@ -33,15 +33,15 @@ public:
   void rotation(const float x, const float y);
   void translation(const float x, const float y);
 
-  void move_up(const float delta_time);
-  void move_down(const float delta_time);
-  void move_right(const float delta_time);
-  void move_left(const float delta_time);
+  void move_up(const float dt);
+  void move_down(const float dt);
+  void move_right(const float dt);
+  void move_left(const float dt);
 
   mat4f view() const;
 
   mat4f projection() const;
-  mat4f projection(const float width, const float height);
+  mat4f projection(float width, float height) const;
 
   float znear() const;
   float zfar() const;
@@ -67,7 +67,7 @@ public:
 
   void increase_fov(float d);
   void disable_smoothness();
-  void increase_zoom_smoothness(const float delta_time);
+  void increase_zoom_smoothness(const float dt);
 
   void align_to_plane(const vec3f& normal);
   void align_to_nearest_axis();
@@ -105,17 +105,17 @@ public:
   inline bool is_orthographic() const { return mode_ == Camera_mode::ORTHOGRAPHIC; }
   inline bool is_orbiter() const { return type_ == Camera_type::ORBITER; }
 
-  inline void increase_rotation_speed(const float delta_time) { rotation_speed_ = std::min(rotation_speed_ + 100.f * delta_time, 360.f); }
-  inline void decrease_rotation_speed(const float delta_time) { rotation_speed_ = std::max(rotation_speed_ - 100.f * delta_time, 60.f); }
+  inline void increase_rotation_speed(const float dt) { rotation_speed_ = std::min(rotation_speed_ + 100.f * dt, 360.f); }
+  inline void decrease_rotation_speed(const float dt) { rotation_speed_ = std::max(rotation_speed_ - 100.f * dt, 60.f); }
 
-  inline void increase_translation_speed(const float delta_time) { translation_speed_ = std::min(translation_speed_ + delta_time, 20.f); }
-  inline void decrease_translation_speed(const float delta_time) { translation_speed_ = std::max(translation_speed_ - delta_time, 0.5f); }
+  inline void increase_translation_speed(const float dt) { translation_speed_ = std::min(translation_speed_ + dt, 20.f); }
+  inline void decrease_translation_speed(const float dt) { translation_speed_ = std::max(translation_speed_ - dt, 0.5f); }
 
-  inline void increase_rotation_smoothness(const float delta_time) { rotation_smooth_factor_ = std::max(rotation_smooth_factor_ - delta_time, 0.01f); }
-  inline void decrease_rotation_smoothness(const float delta_time) { rotation_smooth_factor_ = std::min(rotation_smooth_factor_ + delta_time, 1.f); }
+  inline void increase_rotation_smoothness(const float dt) { rotation_smooth_factor_ = std::max(rotation_smooth_factor_ - dt, 0.01f); }
+  inline void decrease_rotation_smoothness(const float dt) { rotation_smooth_factor_ = std::min(rotation_smooth_factor_ + dt, 1.f); }
 
-  inline void increase_translation_smoothness(const float delta_time) { translation_smooth_factor_ = std::max(translation_smooth_factor_ - delta_time, 0.01f); }
-  inline void decrease_translation_smoothness(const float delta_time) { translation_smooth_factor_ = std::min(translation_smooth_factor_ + delta_time, 1.f); }
+  inline void increase_translation_smoothness(const float dt) { translation_smooth_factor_ = std::max(translation_smooth_factor_ - dt, 0.01f); }
+  inline void decrease_translation_smoothness(const float dt) { translation_smooth_factor_ = std::min(translation_smooth_factor_ + dt, 1.f); }
 
 private:
   void compute_target_size();
@@ -130,17 +130,17 @@ private:
   vec3f target_position_  { vec3f::Zero() };
   vec3f default_position_ { vec3f::Zero() };
 
-  float size_         { CGAL_CAMERA_RADIUS };
-  float default_size_ { CGAL_CAMERA_RADIUS };
-  float target_size_  { CGAL_CAMERA_RADIUS };
-  float radius_       { CGAL_CAMERA_RADIUS };
+  float size_         { CGAL_GLFW_CAMERA_RADIUS };
+  float default_size_ { CGAL_GLFW_CAMERA_RADIUS };
+  float target_size_  { CGAL_GLFW_CAMERA_RADIUS };
+  float radius_       { CGAL_GLFW_CAMERA_RADIUS };
 
-  float width_  { 1.0f };
-  float height_ { 1.0f };
-  float fov_    { CGAL_CAMERA_FOV };
+  mutable float width_  { 1.0f };
+  mutable float height_ { 1.0f };
+  float fov_    { CGAL_GLFW_CAMERA_FOV };
 
-  float rotation_speed_    { CGAL_CAMERA_ROTATION_SPEED };
-  float translation_speed_ { CGAL_CAMERA_TRANSLATION_SPEED };
+  float rotation_speed_    { CGAL_GLFW_CAMERA_ROTATION_SPEED };
+  float translation_speed_ { CGAL_GLFW_CAMERA_TRANSLATION_SPEED };
 
   Camera_type type_ { Camera_type::ORBITER };
   Camera_mode mode_ { Camera_mode::PERSPECTIVE };
@@ -152,9 +152,9 @@ private:
   float yaw_          { 0.0f };
   float target_yaw_   { 0.0f };
 
-  float zoom_smooth_factor_        { CGAL_CAMERA_ZOOM_SMOOTHNESS };
-  float rotation_smooth_factor_    { CGAL_CAMERA_ROTATION_SMOOTHNESS };
-  float translation_smooth_factor_ { CGAL_CAMERA_TRANSLATION_SMOOTHNESS };
+  float zoom_smooth_factor_        { CGAL_GLFW_CAMERA_ZOOM_SMOOTHNESS };
+  float rotation_smooth_factor_    { CGAL_GLFW_CAMERA_ROTATION_SMOOTHNESS };
+  float translation_smooth_factor_ { CGAL_GLFW_CAMERA_TRANSLATION_SMOOTHNESS };
 };
 
 } // namespace internal

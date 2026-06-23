@@ -24,6 +24,7 @@ struct Mouse_btn_event {
   Mouse_button button; 
   Action action; 
   Modifier mods; 
+  double xpos, ypos; // mouse position 
   bool double_click; 
 };
 
@@ -41,8 +42,8 @@ struct Cursor_event {
 struct Drag_event { 
   Mouse_button button; 
   Modifier mods; 
-  float dx; 
-  float dy; 
+  double dx, dy; // mouse delta
+  double xpos, ypos; // mouse position 
 };
 
 struct Resize_event { 

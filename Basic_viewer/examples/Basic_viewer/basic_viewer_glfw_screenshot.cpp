@@ -65,11 +65,11 @@ int main(int argc, char *argv[]) {
 
   CGAL::Graphics_scene buffer;
   add_to_graphics_scene(sm, buffer, Colored_faces_given_height(sm));
-  CGAL::Basic_viewer bv(buffer, "Basic viewer", { .hidden_window = true });
+  CGAL::Basic_viewer bv(buffer, "Basic viewer", { .draw_faces = false });
 
   using CP_Display_mode = CGAL::GLFW::Basic_viewer::CP_Display_mode;
   bv.camera_orientation({0, 0, 1}, 180);
-  bv.display_mode(CP_Display_mode::SOLID_HALF_WIRE_HALF);
+  bv.clipping_mode(CP_Display_mode::SOLID_HALF_WIRE_HALF);
   bv.clipping_plane_orientation({-1, 0, 0});
   bv.make_screenshot("./screenshot.png");
 

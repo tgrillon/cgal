@@ -1,6 +1,8 @@
 #ifndef CGAL_GLFW_INTERNAL_ACTION_REGISTRY_IMPL_H
 #define CGAL_GLFW_INTERNAL_ACTION_REGISTRY_IMPL_H
 
+#include "binding.h"
+#include "event.h"
 #include <CGAL/config.h>
 
 #ifdef CGAL_HEADER_ONLY
@@ -26,7 +28,12 @@ namespace GLFW {
 namespace internal {
 
 CGAL_INLINE_FUNCTION
-void Action_registry::register_action(const std::string& section_name, const std::string& action_name, const Binding& binding, const std::string& description, Event_callback callback) {
+void Action_registry::register_action(
+  const std::string& section_name, 
+  const std::string& action_name, 
+  const Binding& binding, 
+  const std::string& description, 
+  Event_callback callback) {
   // Check invariants
 
   // Check section name validity (empty string is invalid)
@@ -68,6 +75,47 @@ void Action_registry::register_action(const std::string& section_name, const std
   binding_to_action_.emplace(binding, std::move(entry)); 
   actions_by_section_[section_name].emplace(action_name, binding); 
 } 
+
+CGAL_INLINE_FUNCTION
+void Action_registry::register_drag_action(
+  const std::string& section_name, 
+  const std::string& action_name, 
+  const Mouse_btn_binding& binding, 
+  const std::string& description, 
+  const Drag_handlers& handlers) {
+  
+    register_action(
+      section_name, 
+      action_name + "_begin", 
+      Mouse_btn_binding{ binding.button, Action::PRESS, binding.mods }, 
+      "", 
+      [on_begin = std::move(handlers.on_begin)](Event_context& ctx) {
+        const auto& e = std::get<Mouse_btn_event>(ctx.event); 
+        on_begin(ctx, e.xpos, e.ypos); 
+        return false; 
+      });
+
+    register_action(
+      section_name, 
+      action_name, 
+      Mouse_btn_binding{ binding.button, Action::HOLD, binding.mods }, 
+      description, 
+      [on_drag = std::move(handlers.on_drag)](Event_context& ctx) {
+        const auto& e = std::get<Drag_event>(ctx.event); 
+        return on_drag(ctx, e.xpos, e.ypos, e.dx, e.dy); 
+      });
+
+    
+    register_action(
+      section_name, 
+      action_name + "_end", 
+      Mouse_btn_binding{ binding.button, Action::RELEASE, binding.mods }, 
+      "", 
+      [on_end = std::move(handlers.on_end)](Event_context& ctx) {
+        on_end(ctx);
+        return false;  
+      });
+}
 
 CGAL_INLINE_FUNCTION
 bool Action_registry::dispatch(Event_context& context) {

@@ -21,7 +21,7 @@ namespace internal {
 
 CGAL_INLINE_FUNCTION
 Scene_renderer::Scene_renderer(const Graphics_scene& scene,
-                               const Camera&         camera,
+                               const Camera_controller& camera,
                                const Clipping_plane& clip,
                                const Window&         window)
   : scene_(scene), camera_(camera), clipping_plane_(clip), window_(window) {
@@ -269,8 +269,7 @@ void Scene_renderer::check_geometry_feature_availability() const {
 CGAL_INLINE_FUNCTION
 void Scene_renderer::compute_mvp() {
   view_matrix_ = camera_.view(); 
-  projection_matrix_ = camera_.projection(window_.framebuffer_width(), 
-                                          window_.framebuffer_height()); 
+  projection_matrix_ = camera_.proj(); 
   view_projection_matrix_ = projection_matrix_ * view_matrix_; 
 
   const mat4f& cm = clipping_plane_.model_matrix();
@@ -366,7 +365,7 @@ void Scene_renderer::update_pl_uniforms(const vec3f& default_color) {
     auto mode =
         half ? Rendering_mode::DRAW_INSIDE_ONLY : Rendering_mode::DRAW_ALL;
 
-    const mat4f& P = camera_.projection(); 
+    const mat4f& P = camera_.proj(); 
     const float h = window_.framebuffer_height(); 
     const float px_per_world_unit = h * P(1, 1) * 0.5f;
 
@@ -398,7 +397,7 @@ void Scene_renderer::update_line_uniforms(float size, const vec3f& default_color
     vec2f viewport = {static_cast<float>(window_.framebuffer_width()),
                       static_cast<float>(window_.framebuffer_height())};
 
-    const mat4f& P = camera_.projection(); 
+    const mat4f& P = camera_.proj(); 
     const float h = window_.framebuffer_height(); 
     const float px_per_world_unit = h * P(1, 1) * 0.5f;
 
@@ -432,7 +431,7 @@ void Scene_renderer::update_normals_uniforms() {
     vec2f viewport = {static_cast<float>(window_.framebuffer_width()),
                       static_cast<float>(window_.framebuffer_height())};
 
-    const mat4f& P = camera_.projection(); 
+    const mat4f& P = camera_.proj(); 
     const float h = window_.framebuffer_height(); 
     const float px_per_world_unit = h * P(1, 1) * 0.5f;
     
@@ -601,7 +600,7 @@ CGAL_INLINE_FUNCTION
 void Scene_renderer::render_xy_grid() {
   gizmos_.render_xy_grid_gizmo(
     view_projection_matrix_, 
-    camera_.get_size());
+    camera_.distance());
 } 
 
 CGAL_INLINE_FUNCTION

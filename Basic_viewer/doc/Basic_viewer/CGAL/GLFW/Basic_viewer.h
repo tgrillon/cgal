@@ -207,7 +207,7 @@ public:
   /// - `CLIPPING_PLANE_SOLID_HALF_TRANSPARENT_HALF`: Renders half of the clipped object as solid and half as transparent.
   /// - `CLIPPING_PLANE_SOLID_HALF_WIRE_HALF`: Renders half of the clipped object as solid and half with wireframe.
   /// - `CLIPPING_PLANE_SOLID_HALF_ONLY`: Only renders the positive side of the clipped object.
-  void display_mode(Display_mode m);
+  void clipping_mode(Clipping_mode m);
 
   /// \brief Enables the 2D/orthographic camera mode.
   void two_dimensional(); 

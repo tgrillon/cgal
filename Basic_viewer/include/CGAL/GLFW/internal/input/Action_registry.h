@@ -27,9 +27,17 @@ struct Action_entry {
   Event_callback callback {};
 };
 
+struct Drag_handlers {
+  std::function<void(Event_context&, float xpos, float ypos)> on_begin;
+  std::function<bool(Event_context&, float xpos, float ypos, float dx, float dy)> on_drag;
+  std::function<void(Event_context&)> on_end;
+};
+
 class Action_registry {
 public: // Public methods
   void register_action(const std::string& section_name, const std::string& action_name, const Binding& binding, const std::string& description, Event_callback callback); 
+
+  void register_drag_action(const std::string& section_name, const std::string& action_name, const Mouse_btn_binding& binding, const std::string& description, const Drag_handlers& handlers);
 
   bool dispatch(Event_context& context);
   

@@ -14,6 +14,7 @@
 #ifndef CGAL_GLFW_BASIC_VIEWER_H
 #define CGAL_GLFW_BASIC_VIEWER_H
 
+#include "internal/controls/Orbiter_camera.h"
 #include <iostream>
 #include <memory>
 #include <stdlib.h>
@@ -31,7 +32,7 @@
 
 #include <CGAL/GLFW/internal/controls/Animation_controller.h>
 #include <CGAL/GLFW/internal/controls/Clipping_plane.h>
-#include <CGAL/GLFW/internal/controls/Camera.h>
+#include <CGAL/GLFW/internal/controls/Camera_controller.h>
 #include <CGAL/GLFW/internal/input/Action_registry.h>
 #include <CGAL/GLFW/internal/input/Input.h>
 #include <CGAL/GLFW/internal/render/Drawable.h>
@@ -187,29 +188,25 @@ public:
 
   // ---- Camera and scene ----
 
-  void scene_radius(float r) { camera_.set_radius(r); }
-  void scene_center(const vec3f &c) { camera_.set_center(c); }
+  void scene_radius(float r) { camera_.radius(r); }
+  void scene_center(const vec3f &c) { camera_.target(c); }
   void scene_center(float x, float y, float z) {
-    camera_.set_center({x, y, z});
+    camera_.target({x, y, z});
   }
 
-  void camera_position(const vec3f &p) { camera_.set_position(p); }
-  void camera_position(float x, float y, float z) {
-    camera_.set_position({x, y, z});
-  }
-  void camera_orientation(const vec3f &f, float u) {
-    camera_.set_orientation(f, u);
-  }
-  void zoom(float z) { camera_.set_size(z); }
+  void camera_position(const vec3f &p) { camera_.position(p); }
+  void camera_position(float x, float y, float z) { camera_.position({x, y, z}); }
+  void camera_orientation(const vec3f &f, float u) { camera_.orientation(f, u); }
+  void zoom(float z) { camera_.distance(z); }
 
   void align_camera_to_clipping_plane() {
     camera_.align_to_plane(clipping_plane_.normal());
   }
 
-  vec3f position() const { return camera_.get_position(); }
-  vec3f forward() const { return camera_.get_forward(); }
-  vec3f right() const { return camera_.get_right(); }
-  vec3f up() const { return camera_.get_up(); }
+  vec3f position() const { return camera_.position(); }
+  vec3f forward() const { return camera_.forward(); }
+  vec3f right() const { return camera_.right(); }
+  vec3f up() const { return camera_.up(); }
 
   // ---- Clipping plane ----
 
@@ -223,7 +220,7 @@ public:
     clipping_plane_.translation(t * .1);
   }
   void clipping_plane_translate_along_camera_forward(float t) {
-    clipping_plane_.translation(camera_.get_forward(), t * .1);
+    clipping_plane_.translation(camera_.forward(), t * .1);
   }
 
   bool clipping_plane_enabled() const {
@@ -284,7 +281,6 @@ private:
   // ---- Misc ----
 
   void print_application_state(float &elapsed_time, float dt);
-  void change_pivot_point();
   bool need_update() const;
   void handle_events(float dt);
 
@@ -314,7 +310,7 @@ private:
 
   std::pair<vec3f, vec3f> bounding_box_;
 
-  internal::Camera camera_{};
+  internal::Camera_controller camera_{};
   internal::Clipping_plane clipping_plane_{};
   internal::Scene_renderer renderer_; 
 

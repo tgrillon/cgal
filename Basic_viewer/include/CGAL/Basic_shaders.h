@@ -117,15 +117,10 @@ out mediump vec4 fColor;
 out highp   vec4 ls_fP; // local space 
 
 uniform highp   mat4  u_Mvp;
-uniform mediump float u_PointSize;
-uniform         bool  u_IsOrthographic;
+uniform mediump float u_PxPerWorldUnit;
+uniform mediump float u_WorldRadius;
 uniform mediump vec3  u_DefaultColor; 
 uniform         bool  u_UseDefaultColor; 
-
-bool EqualZero(float value)
-{
-  return abs(value) < 0.00001;
-}
 
 void main(void)
 {
@@ -141,14 +136,8 @@ void main(void)
 
   gl_Position  = u_Mvp * pos;
 
-  float distance = gl_Position.w;
-  if (u_IsOrthographic) 
-  {
-    distance = u_PointSize;
-  } 
-
-  float effectiveDistance = EqualZero(distance) ? 0.00001 : distance;
-  gl_PointSize = u_PointSize / effectiveDistance * 5.0;
+  float d = max(gl_Position.w, 1e-5); 
+  gl_PointSize = 2.0 * u_WorldRadius * u_PxPerWorldUnit  / d; 
 }
 )DELIM";
 
@@ -522,7 +511,7 @@ uniform         bool u_UseDefaultColor;
 
 void main(void)
 {
-  vs_out.color = vec4(abs(normalize(a_Normal)), 1.0); 
+  vs_out.color = vec4((normalize(a_Normal) + 1.0) * 0.5, 1.0); 
   if (u_UseDefaultColor)
   {
     vs_out.color = vec4(u_DefaultColor, 1.0); 
@@ -538,7 +527,7 @@ void main(void)
 const char GEOMETRY_SOURCE_NORMAL[]=R"DELIM(
 #version 150 
 layout (triangles) in;
-layout (line_strip, max_vertices = 6) out;
+layout (triangle_strip, max_vertices = 12) out;
 
 in VS_OUT {
   mediump vec4  color;
@@ -549,59 +538,89 @@ out mediump vec4 fColor;
 out highp   vec4 ls_fP;
 
 uniform highp   mat4  u_Projection;
-uniform mediump float u_Factor;
-uniform mediump float u_SceneRadius;
 uniform highp   mat4  u_Mv;
+uniform mediump float u_Factor;
+uniform mediump vec2  u_Viewport;
+uniform mediump float u_WorldRadius;
+uniform mediump float u_PxPerWorldUnit;
 uniform bool          u_DisplayFaceNormal;
 
-void GenerateLine(int index)
-{
-  fColor = gs_in[index].color; 
+vec2 toScreenPx(vec4 clip) {
+  return (clip.xy / max(clip.w, 1e-5) + 1) * 0.5 * u_Viewport; // from [-1, 1] to [0, viewport_dims]
+}
+
+vec4 pxOffsetToClip(vec2 offset_px, float w) {
+  // pixel offset to clip-space offset (with perspective baked in)
+  return vec4(offset_px / u_Viewport * 2.0 * w, 0, 0);
+}
+
+void generateQuad(vec4 start_local, vec3 viewN, vec4 color) {
+  vec4 start_view = u_Mv * start_local; 
+  vec4 end_view = start_view + vec4(viewN, 0.0) * u_Factor; // compute the position of the end point of the normal
+  vec4 end_local = inverse(u_Mv) * end_view; 
   
-  ls_fP = gl_in[index].gl_Position;
-  gl_Position = u_Projection * u_Mv * gl_in[index].gl_Position;
-  EmitVertex();
+  vec4 start_clip = u_Projection * start_view;
+  vec4 end_clip = u_Projection * end_view;
 
-  vec4 newPosition = u_Mv * gl_in[index].gl_Position + vec4(gs_in[index].normal, 0.0) * u_SceneRadius * u_Factor;
-  ls_fP = inverse(u_Mv) * newPosition;
-  gl_Position = u_Projection * newPosition;
-  EmitVertex();
+  vec2 dir = normalize(toScreenPx(end_clip) - toScreenPx(start_clip));
+  vec2 perp = vec2(-dir.y, dir.x); 
+  
+  // Set weights (clip distance)
+  float w0 = max(start_clip.w, 1e-5); 
+  float w1 = max(end_clip.w, 1e-5);
+ 
+  // Compute offsets
+  vec4 o0 = pxOffsetToClip(perp * u_WorldRadius * u_PxPerWorldUnit / w0, w0);  
+  vec4 o1 = pxOffsetToClip(perp * u_WorldRadius * u_PxPerWorldUnit / w1, w1);  
 
-  EndPrimitive();
+  // Generate vertices using start/end points and their respective offsets
+  fColor = color; 
+  ls_fP = start_local;
+  gl_Position = start_clip + o0;  
+  EmitVertex(); 
+
+  fColor = color; 
+  ls_fP = start_local;
+  gl_Position = start_clip - o0;  
+  EmitVertex(); 
+
+  fColor = color; 
+  ls_fP = end_local;
+  gl_Position = end_clip + o1;  
+  EmitVertex(); 
+
+  fColor = color; 
+  ls_fP = end_local;
+  gl_Position = end_clip - o1;  
+  EmitVertex(); 
+  EndPrimitive(); 
 }
 
-void DrawVerticesNormal()
+void drawVerticesNormal()
 {
-  GenerateLine(0); // first vertex normal
-  GenerateLine(1); // second vertex normal
-  GenerateLine(2); // third vertex normal
+  generateQuad(gl_in[0].gl_Position, gs_in[0].normal, gs_in[0].color); 
+  generateQuad(gl_in[1].gl_Position, gs_in[1].normal, gs_in[1].color); 
+  generateQuad(gl_in[2].gl_Position, gs_in[2].normal, gs_in[2].color); 
 }
 
-void DrawFaceNormal()
+void drawFaceNormal()
 {
-  fColor = (gs_in[0].color + gs_in[1].color + gs_in[2].color) / 3; 
   vec4 center = (gl_in[0].gl_Position + gl_in[1].gl_Position + gl_in[2].gl_Position) / 3;
-  ls_fP = center;
-  gl_Position = u_Projection * u_Mv * center;
-  EmitVertex();
-
-  vec3 n = normalize((gs_in[0].normal.xyz + gs_in[1].normal.xyz + gs_in[2].normal.xyz) / 3);
-
-  vec4 newPosition = u_Mv * center + vec4(n, 0.0) * u_SceneRadius * u_Factor;
-  ls_fP = inverse(u_Mv) * newPosition;
-  gl_Position = u_Projection * newPosition;
-  EmitVertex();
+  vec3 normal = normalize((gs_in[0].normal.xyz + gs_in[1].normal.xyz + gs_in[2].normal.xyz) / 3);
+  vec4 color = (gs_in[0].color + gs_in[1].color + gs_in[2].color) / 3;
+  color.a = 1.0; 
+  generateQuad(center, normal, color);
 }
 
 void main()
 {
   if (u_DisplayFaceNormal)
   {
-    DrawFaceNormal();
+    drawFaceNormal();
   }
   else 
   {
-    DrawVerticesNormal();
+    drawVerticesNormal();
   }
 }
 )DELIM";
@@ -669,21 +688,13 @@ in highp   vec3 a_Pos;
 in mediump vec3 a_Color;
  
 out VS_OUT {
-  mediump float pointSize; 
   mediump vec4 color; 
   highp   vec4 ls_fP; 
 } vs_out; 
 
 uniform highp   mat4  u_Mvp;
-uniform mediump float u_PointSize;
-uniform         bool  u_IsOrthographic;
 uniform mediump vec3  u_DefaultColor;
 uniform         bool  u_UseDefaultColor;
-
-bool EqualZero(float value)
-{
-  return abs(value) < 0.00001;
-}
 
 void main(void)
 {
@@ -697,15 +708,6 @@ void main(void)
   }
 
   gl_Position  = u_Mvp * pos;
-
-  float distance = gl_Position.w;
-  if (u_IsOrthographic) 
-  {
-    distance = u_PointSize;
-  } 
-
-  float effectiveDistance = EqualZero(distance) ? 0.00001 : distance;
-  vs_out.pointSize = u_PointSize / effectiveDistance;
 }
 )DELIM";
 
@@ -717,7 +719,6 @@ layout (triangle_strip, max_vertices = 4) out;
 in mediump vec4 g_Color[]; 
 
 in VS_OUT {
-  mediump float pointSize; 
   mediump vec4 color; 
   highp   vec4 ls_fP; 
 } gs_in[]; 
@@ -725,48 +726,43 @@ in VS_OUT {
 out mediump vec4 fColor; 
 out highp   vec4 ls_fP; 
 
-uniform mediump float u_PointSize; 
-uniform mediump vec2  u_Viewport;
 uniform highp   mat4  u_Mvp;
+uniform mediump vec2  u_Viewport;
+uniform mediump float u_WorldRadius; 
+uniform mediump float u_PxPerWorldUnit;
 
-vec2 ToScreenSpace(vec4 vertex)
-{
-  return vec2(vertex.xy / vertex.w) * u_Viewport; 
+vec2 toScreenPx(vec4 clip) {
+  return (clip.xy / max(clip.w, 1e-5) + 1) * 0.5 * u_Viewport; 
 }
 
-vec4 ToWorldSpace(vec4 vertex)
-{
-  return vec4((vertex.xy * vertex.w) / u_Viewport, vertex.zw); 
+vec4 pxOffsetToClip(vec2 offset_px, float w) {
+  // pixel offset to clip-space offset (with perspective baked in)
+  return vec4(offset_px / u_Viewport * 2.0 * w, 0, 0);
 }
 
-void main(void)
-{
-  vec2 p0 = ToScreenSpace(gl_in[0].gl_Position);
-  vec2 p1 = ToScreenSpace(gl_in[1].gl_Position);
-  vec2 v0 = normalize(p1 - p0);
-  vec2 n0 = vec2(-v0.y, v0.x) * u_PointSize * 0.5;
+void emitPair(int i, vec2 dir_screen_px) {
+  float d_i = max(gl_in[i].gl_Position.w, 1e-5);
+  vec2 perp = vec2(-dir_screen_px.y, dir_screen_px.x); 
+  vec4 offset = pxOffsetToClip(perp * u_WorldRadius * u_PxPerWorldUnit / d_i, d_i); 
+
+  fColor = gs_in[i].color;
+  ls_fP = inverse(u_Mvp) * (gl_in[i].gl_Position + offset);
+  gl_Position = gl_in[i].gl_Position + offset;
+  EmitVertex(); 
+
+  fColor = gs_in[i].color;
+  ls_fP = inverse(u_Mvp) * (gl_in[i].gl_Position - offset);
+  gl_Position = gl_in[i].gl_Position - offset;
+  EmitVertex(); 
+}
+
+void main(void) {
+  vec2 p0 = toScreenPx(gl_in[0].gl_Position);
+  vec2 p1 = toScreenPx(gl_in[1].gl_Position);
+  vec2 dir = normalize(p1 - p0);
   
-  // line start
-  gl_Position = ToWorldSpace(vec4(p0 - n0 * gs_in[0].pointSize, gl_in[0].gl_Position.zw)); 
-  fColor = gs_in[0].color;
-  ls_fP = inverse(u_Mvp) * gl_Position;
-  EmitVertex();
-  
-  gl_Position = ToWorldSpace(vec4(p0 + n0 * gs_in[0].pointSize, gl_in[0].gl_Position.zw));
-  fColor = gs_in[0].color;
-  ls_fP = inverse(u_Mvp) * gl_Position;
-  EmitVertex();
-  
-  // line end
-  gl_Position = ToWorldSpace(vec4(p1 - n0 * gs_in[1].pointSize, gl_in[1].gl_Position.zw));
-  fColor = gs_in[1].color;
-  ls_fP = inverse(u_Mvp) * gl_Position;
-  EmitVertex();
-  
-  gl_Position = ToWorldSpace(vec4(p1 + n0 * gs_in[1].pointSize, gl_in[1].gl_Position.zw));
-  fColor = gs_in[1].color;
-  ls_fP = inverse(u_Mvp) * gl_Position;
-  EmitVertex();
+  emitPair(0, dir);
+  emitPair(1, dir);
 }
 )DELIM";
 

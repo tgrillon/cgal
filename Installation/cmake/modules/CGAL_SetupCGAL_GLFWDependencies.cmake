@@ -2,7 +2,7 @@
 # CGAL_SetupCGAL_GLFWDependencies
 # -------------------------------
 #
-# The module searches for the dependencies of the `CGAL_GLFW` library:
+# The module searches for the dependencies of the `CGAL_GLFW` library used by the GLFW Basic viewer:
 #   - the `glfw3` library (via its CMake config package)
 #   - an `OpenGL` runtime
 #   - the `Eigen3` library (>= 3.1.0)
@@ -76,7 +76,7 @@ endif()
 # ``CGAL::stb``                                                                 
 #   ``INTERFACE`` target for the header-only ``stb_image_write.h``. 
 #
-if(NOT CGAL_GLFW_MISSING_DEPS AND NOT TARGET CGAL_glad)                                                                                                
+if(CGAL_GLFW_FOUND AND NOT TARGET CGAL_glad)                                                                                                
   add_library(CGAL_glad STATIC
     ${CGAL_BASIC_VIEWER_PACKAGE_DIR}/include/CGAL/GLFW/vendor/glad/src/gl.c)                                                                         
   target_include_directories(CGAL_glad SYSTEM PUBLIC 
@@ -87,7 +87,7 @@ if(NOT CGAL_GLFW_MISSING_DEPS AND NOT TARGET CGAL_glad)
   add_library(CGAL::glad ALIAS CGAL_glad)                                                                                                              
 endif()
 
-if(NOT CGAL_GLFW_MISSING_DEPS AND NOT TARGET CGAL_stb)                                                                                                
+if(CGAL_GLFW_FOUND AND NOT TARGET CGAL_stb)                                                                                                
   add_library(CGAL_stb INTERFACE)     
   target_include_directories(CGAL_stb SYSTEM INTERFACE 
     ${CGAL_BASIC_VIEWER_PACKAGE_DIR}/include/CGAL/GLFW/vendor/stb/include)                                                                     
@@ -111,7 +111,7 @@ endif()
 function(CGAL_setup_CGAL_GLFW_dependencies target)
   target_link_libraries(${target} INTERFACE CGAL::CGAL)
   target_link_libraries(${target} INTERFACE glfw)       # external 
-  target_link_libraries(${target} INTERFACE OpenGL::GL) 
+  target_link_libraries(${target} INTERFACE OpenGL::GL) # external
   target_link_libraries(${target} INTERFACE CGAL::glad) # vendored, compiled 
   target_link_libraries(${target} INTERFACE CGAL::stb)  # vendored, header-only 
 

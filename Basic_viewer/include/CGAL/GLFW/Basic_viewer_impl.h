@@ -2,6 +2,7 @@
 #define CGAL_GLFW_BASIC_VIEWER_IMPL_H
 
 #include "Basic_viewer.h"
+#include "internal/controls/Orbiter_camera.h"
 #include <CGAL/basic.h>
 #include <CGAL/config.h>
 #include <CGAL/utils_classes.h>
@@ -23,9 +24,11 @@ Basic_viewer::Basic_viewer(const Graphics_scene &scene,
                            const char *title, 
                            const Basic_viewer_options& opts)
     : window_({ .title=title, .hidden=opts.hidden_window }),
-      scene_(scene), camera_(), clipping_plane_(), 
+      scene_(scene), camera_(45.0f), clipping_plane_(), 
       renderer_(scene_, camera_, clipping_plane_, window_)
 {
+  camera_.window_size(window_.framebuffer_width(), window_.framebuffer_height()); 
+
   renderer_.draw_vertices(opts.draw_vertices),
   renderer_.draw_edges(opts.draw_edges), 
   renderer_.draw_faces(opts.draw_faces),
@@ -66,6 +69,7 @@ void Basic_viewer::setup_inputs() {
   window_.on_resize([this](const internal::Resize_event& event) {
     glViewport(0, 0, event.width, event.height);
     need_update_ = true;
+    camera_.window_size(event.width, event.height); 
   });
 
   window_.on_cursor_move([this](const internal::Cursor_event& e) {
@@ -78,7 +82,7 @@ void Basic_viewer::setup_inputs() {
     action_registry_->for_each_hold<internal::Mouse_btn_binding>(                                 
       [&](const internal::Mouse_btn_binding& b) -> bool {                                         
         if (internal::Input::is_mouse_button_pressed(window_.handle(), b.button) && mods == b.mods) {
-          internal::Drag_event ev{ b.button, b.mods, dx, dy };                  
+          internal::Drag_event ev{ b.button, b.mods, dx, dy, e.xpos, e.ypos };                  
           internal::Event_context ctx{ .viewer=*this, .event=ev };                            
           if (action_registry_->dispatch(ctx)) {
             need_update_ = true;             
@@ -99,8 +103,8 @@ void Basic_viewer::render_scene(float dt) {
   clipping_plane_.update(dt);
   if (animation_controller_.has_value() && animation_controller_->is_running()) {
     auto kf = animation_controller_->run();
-    camera_.set_orientation(kf.orientation);
-    camera_.set_position(kf.position);
+    camera_.orientation(kf.orientation);
+    camera_.position(kf.position);
   }
 
   // pure render
@@ -188,10 +192,10 @@ void Basic_viewer::initialize_camera() {
   bounding_box_ = {pmin, pmax};
 
   camera_.lookat(pmin, pmax);
-  renderer_.scene_scale(camera_.get_radius()); 
+  renderer_.scene_scale(camera_.radius()); 
 
   if (is_two_dimensional()) {
-    camera_.set_constraint_axis(internal::Camera::Constraint_axis::FORWARD_AXIS);
+    camera_.constraint_axis(internal::Orbiter_camera::Constraint_axis::FORWARD_AXIS);
     camera_.set_orthographic();
   }
 }
@@ -245,12 +249,12 @@ void Basic_viewer::print_application_state(float &elapsed_time, const float dt) 
           << "Camera mode: "
           << (camera_.is_orthographic() ? "ORTHOGRAPHIC" : "PERSPECTIVE")
           << "    "
-          << "FOV: " << camera_.get_fov() << " \n\33[2K"
-          << "Camera translation speed: " << camera_.get_translation_speed()
+          << "FOV: " << camera_.fov() << " \n\33[2K"
+          << "Camera translation speed: " << "N/A"
           << "    "
           << "Camera rotation speed: "
-          << std::round(camera_.get_rotation_speed()) << "    "
-          << "Camera constraint axis: " << camera_.get_constraint_axis_str()
+          << "N/A" << "    "
+          << "Camera constraint axis: " << camera_.constraint_axis_str()
           << "\n\33[2K"
           << "CP translation speed: " << clipping_plane_.translation_speed()
           << "    "
@@ -288,38 +292,10 @@ void Basic_viewer::print_application_state(float &elapsed_time, const float dt) 
 }
 
 CGAL_INLINE_FUNCTION
-void Basic_viewer::change_pivot_point() {
-  auto [mouse_x, mouse_y] = internal::Input::mouse_position(window_.handle());
-  int width, height;  
-  window_.window_size(width, height);
-
-  vec2f nc = internal::utils::normalized_coordinates({mouse_x, mouse_y}, width, height);
-
-  vec3f camera_position = camera_.get_position();
-  float camera_x = camera_position.x();
-  float camera_y = camera_position.y();
-
-  float x_value = nc.x() + camera_x;
-  float y_value = nc.y() + camera_y;
-
-  if (internal::utils::inside_bounding_box_2d(
-          {x_value, y_value},
-          {bounding_box_.first.x(), bounding_box_.first.y()},
-          {bounding_box_.second.x(), bounding_box_.second.y()})) {
-    std::cout << "INSIDE\n";
-    camera_.set_center({nc.x(), nc.y(), 0});
-  } else {
-    camera_.set_center(
-        internal::utils::center(bounding_box_.first, bounding_box_.second));
-    std::cout << "OUTSIDE\n";
-  }
-}
-
-CGAL_INLINE_FUNCTION
 void Basic_viewer::zoom_camera(float scroll_y) {
   float yoffset = scroll_y / window_.aspect_ratio();
-  camera_.move(8.f * yoffset * CGAL_GLFW_CAMERA_ZOOM_SPEED);
-  clipping_plane_.size(camera_.get_size());
+  camera_.zoom(8.f * yoffset * CGAL_GLFW_CAMERA_ZOOM_SPEED);
+  clipping_plane_.size(camera_.distance());
 }
 
 CGAL_INLINE_FUNCTION
@@ -327,28 +303,27 @@ void Basic_viewer::change_camera_fov(float scroll_y) {
   if (camera_.is_orthographic()) return;
   float yoffset = scroll_y / window_.aspect_ratio();
   camera_.increase_fov(yoffset);
-  clipping_plane_.size(camera_.get_size());
+  clipping_plane_.size(camera_.distance());
 }
 
 CGAL_INLINE_FUNCTION
 void Basic_viewer::reset_camera() {
-  camera_.reset_position();
-  camera_.reset_orientation();
+  camera_.reset_all();
 }
 
 CGAL_INLINE_FUNCTION
 void Basic_viewer::reset_camera_and_clipping_plane() {
   camera_.reset_all();
   clipping_plane_.reset_all();
-  clipping_plane_.size(camera_.get_size());
+  clipping_plane_.size(camera_.distance());
 }
 
 CGAL_INLINE_FUNCTION
 void Basic_viewer::rotate_clipping_plane(float dx, float dy) {
   if (!clipping_plane_.clipping_enabled()) return;
-  clipping_plane_.right_axis(camera_.get_right());
-  clipping_plane_.up_axis(camera_.get_up());
-  clipping_plane_.forward_axis(camera_.get_forward());
+  clipping_plane_.right_axis(camera_.right());
+  clipping_plane_.up_axis(camera_.up());
+  clipping_plane_.forward_axis(camera_.forward());
   clipping_plane_.rotation(dx, dy);
 }
 
@@ -365,21 +340,21 @@ void Basic_viewer::translate_clipping_plane_along_camera(float dx, float dy) {
   // Use whichever axis the user dragged most along, with the y-axis taking
   // precedence and inverted so that dragging up pushes the plane forward.
   float s = (std::fabs(dy) > std::fabs(dx)) ? -dy : dx;
-  clipping_plane_.translation(camera_.get_forward(),
+  clipping_plane_.translation(camera_.forward(),
                                s * CGAL_GLFW_CLIPPING_PLANE_DRAG_TRANSLATION_SPEED);
 }
 
 CGAL_INLINE_FUNCTION
 void Basic_viewer::reset_clipping_plane() {
   clipping_plane_.reset_all();
-  clipping_plane_.size(camera_.get_size());
+  clipping_plane_.size(camera_.distance());
 }
 
 CGAL_INLINE_FUNCTION
 void Basic_viewer::save_key_frame() {
   if (!camera_.is_orbiter()) return;
-  animation_controller_->add_key_frame(camera_.get_position(),
-                                       camera_.get_orientation());
+  animation_controller_->add_key_frame(camera_.position(),
+                                       camera_.orientation());
 }
 
 CGAL_INLINE_FUNCTION

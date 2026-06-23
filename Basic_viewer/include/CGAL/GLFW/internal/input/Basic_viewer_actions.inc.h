@@ -1,6 +1,7 @@
 #ifndef CGAL_GLFW_INTERNAL_BASIC_VIEWER_ACTIONS_SPLIT_H
 #define CGAL_GLFW_INTERNAL_BASIC_VIEWER_ACTIONS_SPLIT_H
 
+#include "event.h"
 #include <CGAL/basic.h>
 
 #ifdef CGAL_HEADER_ONLY
@@ -163,7 +164,7 @@ void Basic_viewer::register_clipping_plane_actions(internal::Action_registry& re
     internal::Mouse_btn_binding{ .button = internal::Mouse_button::LEFT, .action = internal::Action::PRESS, .mods = internal::Modifier::CONTROL, .double_click = true },
     "Align clipping plane to camera",
     [](internal::Event_context& ctx) {
-      ctx.viewer.clipping_plane_.align_to_direction(ctx.viewer.camera_.get_forward());
+      ctx.viewer.clipping_plane_.align_to_direction(ctx.viewer.camera_.forward());
       return true; // need to redraw
     }
   );
@@ -194,7 +195,7 @@ void Basic_viewer::register_application_actions(internal::Action_registry& regis
       ctx.viewer.toggle_print_application_state(); 
       return false; // don't need to redraw
     }
-  );
+  ); 
 }
 
 CGAL_INLINE_FUNCTION
@@ -211,7 +212,7 @@ void Basic_viewer::register_window_actions(internal::Action_registry& registry) 
       ctx.viewer.window_.toggle_fullscreen(); 
       return true; // need to redraw
     }
-  );
+  ); 
 
   registry.register_action(
     section_name,
@@ -279,9 +280,10 @@ void Basic_viewer::register_camera_actions(internal::Action_registry& registry) 
     "change_pivot_point",
     internal::Mouse_btn_binding{ .button = internal::Mouse_button::RIGHT, .action = internal::Action::RELEASE, .mods = internal::Modifier::SHIFT },
     "Change orbit pivot while dragging",
-    [](internal::Event_context& ctx) { 
-      ctx.viewer.change_pivot_point(); 
-      return false; // don't need to redraw
+    [](internal::Event_context& ctx) {
+      const auto& e = std::get<internal::Mouse_btn_event>(ctx.event);  
+      ctx.viewer.camera_.change_pivot_point(e.xpos, e.ypos); 
+      return true; // need to redraw
     });
 
   // Movement (hold)
@@ -332,7 +334,7 @@ void Basic_viewer::register_camera_actions(internal::Action_registry& registry) 
     internal::Key_binding{ .key = internal::Key_code::UP, .action = internal::Action::HOLD, .mods = internal::Modifier::SHIFT },
     "Move camera forward",
     [](internal::Event_context& ctx) { 
-      ctx.viewer.camera_.move(ctx.dt); 
+      ctx.viewer.camera_.zoom(ctx.dt); 
       return true; // need to redraw
     });
 
@@ -342,7 +344,7 @@ void Basic_viewer::register_camera_actions(internal::Action_registry& registry) 
     internal::Key_binding{ .key = internal::Key_code::DOWN, .action = internal::Action::HOLD, .mods = internal::Modifier::SHIFT },
     "Move camera backwards",
     [](internal::Event_context& ctx) { 
-      ctx.viewer.camera_.move(-ctx.dt); 
+      ctx.viewer.camera_.zoom(-ctx.dt); 
       return true; // need to redraw
     });
 
@@ -354,7 +356,7 @@ void Basic_viewer::register_camera_actions(internal::Action_registry& registry) 
     internal::Key_binding{ .key = internal::Key_code::SPACE, .action = internal::Action::RELEASE },
     "Switch Orbiter / Free-fly",
     [](internal::Event_context& ctx) { 
-      ctx.viewer.camera_.toggle_type(); 
+      // ctx.viewer.camera_.toggle_type(); 
       return true; // need to redraw
     });
 
@@ -386,7 +388,7 @@ void Basic_viewer::register_camera_actions(internal::Action_registry& registry) 
     internal::Key_binding{ .key = internal::Key_code::X, .action = internal::Action::HOLD },
     "Increase translation speed",
     [](internal::Event_context& ctx) { 
-      ctx.viewer.camera_.increase_translation_speed(ctx.dt); 
+      // ctx.viewer.camera_.increase_translation_speed(ctx.dt); 
       return false; // don't need to redraw
     });
 
@@ -396,7 +398,7 @@ void Basic_viewer::register_camera_actions(internal::Action_registry& registry) 
     internal::Key_binding{ .key = internal::Key_code::X, .action = internal::Action::HOLD, .mods = internal::Modifier::SHIFT },
     "Decrease translation speed",
     [](internal::Event_context& ctx) { 
-      ctx.viewer.camera_.decrease_translation_speed(ctx.dt); 
+      // ctx.viewer.camera_.decrease_translation_speed(ctx.dt); 
       return false; // don't need to redraw
     });
 
@@ -406,7 +408,7 @@ void Basic_viewer::register_camera_actions(internal::Action_registry& registry) 
     internal::Key_binding{ .key = internal::Key_code::R, .action = internal::Action::HOLD },
     "Increase rotation speed",
     [](internal::Event_context& ctx) { 
-      ctx.viewer.camera_.increase_rotation_speed(ctx.dt); 
+      // ctx.viewer.camera_.increase_rotation_speed(ctx.dt); 
       return false; // don't need to redraw
     });
 
@@ -416,22 +418,23 @@ void Basic_viewer::register_camera_actions(internal::Action_registry& registry) 
     internal::Key_binding{ .key = internal::Key_code::R, .action = internal::Action::HOLD, .mods = internal::Modifier::SHIFT },
     "Decrease rotation speed",
     [](internal::Event_context& ctx) { 
-      ctx.viewer.camera_.decrease_rotation_speed(ctx.dt); 
+      // ctx.viewer.camera_.decrease_rotation_speed(ctx.dt); 
       return false; // don't need to redraw
     });
 
   // Mouse drags (hold)
 
-  registry.register_action(
+  registry.register_drag_action(
     section_name,
     "rotate",
-    internal::Mouse_btn_binding{ .button = internal::Mouse_button::LEFT, .action = internal::Action::HOLD },
+    internal::Mouse_btn_binding{ .button = internal::Mouse_button::LEFT },
     "Rotate camera (drag)",
-    [](internal::Event_context& ctx) {
-      const auto& e = std::get<internal::Drag_event>(ctx.event);
-      ctx.viewer.camera_.rotation(e.dx, e.dy);
-      return true; // need to redraw
-    });
+    internal::Drag_handlers{
+      .on_begin = [](internal::Event_context& ctx, float xpos, float ypos) { ctx.viewer.camera_.begin_drag(xpos, ypos); },
+      .on_drag = [](internal::Event_context& ctx, float xpos, float ypos, float dx, float dy) { ctx.viewer.camera_.on_drag(xpos, ypos); return true; },
+      .on_end = [](internal::Event_context& ctx) { ctx.viewer.camera_.end_drag(); }
+    }); 
+
 
   registry.register_action(
     section_name,
@@ -440,9 +443,7 @@ void Basic_viewer::register_camera_actions(internal::Action_registry& registry) 
     "Translate camera (drag)",
     [](internal::Event_context& ctx) {
       const auto& e = std::get<internal::Drag_event>(ctx.event);
-      ctx.viewer.camera_.translation(
-        -e.dx * CGAL_GLFW_CAMERA_DRAG_TRANSLATION_SPEED,
-         e.dy * CGAL_GLFW_CAMERA_DRAG_TRANSLATION_SPEED);
+      ctx.viewer.camera_.pan(e.dx, -e.dy);
       return true; // need to redraw
     });
 
@@ -783,7 +784,7 @@ void Basic_viewer::register_scene_actions(internal::Action_registry& registry) {
     internal::Mouse_btn_binding{ .button = internal::Mouse_button::MIDDLE, .action = internal::Action::PRESS, .double_click = true },
     "Re-fit scene to the viewport",
     [](internal::Event_context& ctx) { 
-      ctx.viewer.camera_.reset_size(); 
+      ctx.viewer.camera_.reset_distance(); 
       return true; // need to redraw
     }
   );

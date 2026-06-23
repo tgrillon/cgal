@@ -78,12 +78,6 @@ Window::Window(const Window_specification &spec)
 }
 
 CGAL_INLINE_FUNCTION
-Window::~Window() { destroy(); }
-
-CGAL_INLINE_FUNCTION
-void Window::update() const { glfwSwapBuffers(handle_); }
-
-CGAL_INLINE_FUNCTION
 void Window::destroy() {
   if (handle_ != nullptr) {
     glfwDestroyWindow(handle_);
@@ -92,9 +86,6 @@ void Window::destroy() {
   
   glfwTerminate();
 }
-
-CGAL_INLINE_FUNCTION
-GLFWwindow *Window::handle() const { return handle_; }
 
 CGAL_INLINE_FUNCTION
 void Window::on_key(Window::Key_event_fun fun) {
@@ -127,31 +118,6 @@ void Window::on_resize(Window::Resize_event_fun fun) {
 }
 
 CGAL_INLINE_FUNCTION
-bool Window::should_close() const {
-  return glfwWindowShouldClose(handle_);
-}
-
-CGAL_INLINE_FUNCTION
-void Window::should_close(int value) {
-  glfwSetWindowShouldClose(handle_, value); 
-}
-
-CGAL_INLINE_FUNCTION
-void Window::window_pos(int &xpos, int &ypos) const {
-  glfwGetWindowPos(handle_, &xpos, &ypos);
-}
-
-CGAL_INLINE_FUNCTION
-float Window::aspect_ratio() const {
-  return aspect_ratio_; 
-}
-
-CGAL_INLINE_FUNCTION
-void Window::window_size(int &width, int &height) const {
-  glfwGetWindowSize(handle_, &width, &height);
-}
-
-CGAL_INLINE_FUNCTION
 int Window::window_width() const {
   int w, h; 
   window_size(w, h);
@@ -164,26 +130,6 @@ int Window::window_height() const {
   window_size(w, h);
   return h; 
 }
-
-CGAL_INLINE_FUNCTION
-void Window::framebuffer_size(int &width, int &height) const {
-  glfwGetFramebufferSize(handle_, &width, &height);
-}
-
-CGAL_INLINE_FUNCTION
-vec2i Window::framebuffer_size() const {
-  return framebuffer_size_; 
-}
-
-CGAL_INLINE_FUNCTION
-int Window::framebuffer_width() const {
-  return framebuffer_size_.x();
-} 
-
-CGAL_INLINE_FUNCTION
-int Window::framebuffer_height() const {
-  return framebuffer_size_.y();
-} 
 
 CGAL_INLINE_FUNCTION
 void Window::toggle_fullscreen() {
@@ -216,13 +162,13 @@ GLFWmonitor* Window::current_monitor() const {
   GLFWmonitor* best = nullptr;                                                                                                                                
   int best_overlap = -1;                                                      
   for (int i = 0; i < count; ++i) {                                                                                                                           
-    int mx, my;                                                               
-    glfwGetMonitorPos(monitors[i], &mx, &my);                                                                                                                 
+    int xpos, ypos;                                                               
+    glfwGetMonitorPos(monitors[i], &xpos, &ypos);                                                                                                                 
     const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
     if (!mode) continue;                                                                                                                                      
                                                                               
-    const int ox = std::max(0, std::min(wx + ww, mx + mode->width)  - std::max(wx, mx));                                                                      
-    const int oy = std::max(0, std::min(wy + wh, my + mode->height) - std::max(wy, my));
+    const int ox = std::max(0, std::min(wx + ww, xpos + mode->width)  - std::max(wx, xpos));                                                                      
+    const int oy = std::max(0, std::min(wy + wh, ypos + mode->height) - std::max(wy, ypos));
     const int overlap = ox * oy;                                                                                                                              
     if (overlap > best_overlap) {                                             
       best_overlap = overlap;                                                                                                                                 
@@ -268,10 +214,13 @@ CGAL_INLINE_FUNCTION
 void Window::mouse_btn_callback(GLFWwindow* window, int button, int action,int mods) {
   auto self = static_cast<Window*>(glfwGetWindowUserPointer(window)); 
   
+  auto [xpos, ypos] = Input::mouse_position(self->handle_); 
+
   internal::Mouse_btn_event event{
     .button = static_cast<internal::Mouse_button>(button),
     .action = static_cast<internal::Action>(action), 
-    .mods = static_cast<internal::Modifier>(mods)
+    .mods = static_cast<internal::Modifier>(mods),
+    .xpos = xpos, .ypos = ypos 
   };
 
   if (action == GLFW_PRESS) {

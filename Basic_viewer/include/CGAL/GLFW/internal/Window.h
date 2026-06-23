@@ -46,13 +46,13 @@ public:
 	Window(Window&&)=delete; 	
 	Window& operator=(Window&&)=delete; 	
 	
-	~Window(); 
+	~Window() { destroy(); }
 
-	void update() const; 
+	void update() const { glfwSwapBuffers(handle_); }
 
 	bool is_valid() const { return handle_ != nullptr; }
 
-	GLFWwindow* handle() const;
+	GLFWwindow* handle() const { return handle_; }
 
   void on_key(Key_event_fun key_callback);
   void on_mouse_btn(Mouse_btn_event_fun mouse_btn_callback);
@@ -60,20 +60,20 @@ public:
   void on_resize(Resize_event_fun framebuffer_size_callback);
   void on_cursor_move(Cursor_event_fun cursor_callback);
 
-	bool should_close() const; 
-	void should_close(int value); 
+	bool should_close() const { return glfwWindowShouldClose(handle_); }
+	void should_close(int value) { glfwSetWindowShouldClose(handle_, value); }
 	
-	void window_pos(int& xpos, int& ypos) const; 
-	void window_size(int& width, int& height) const; 
+	void window_pos(int& xpos, int& ypos) const { glfwGetWindowPos(handle_, &xpos, &ypos); }
+	void window_size(int& width, int& height) const { glfwGetWindowSize(handle_, &width, &height); }
 	int window_width() const; 
 	int window_height() const; 
 	
-	float aspect_ratio() const;
+	float aspect_ratio() const { return aspect_ratio_; }
 
-	void framebuffer_size(int& width, int& height) const; 
-	vec2i framebuffer_size() const; 
-	int framebuffer_width() const; 
-	int framebuffer_height() const; 
+	void framebuffer_size(int& width, int& height) const { glfwGetFramebufferSize(handle_, &width, &height); }
+	vec2i framebuffer_size() const { return framebuffer_size_; }
+	int framebuffer_width() const { return framebuffer_size_.x(); }
+	int framebuffer_height() const { return framebuffer_size_.y(); }
 
 	void toggle_fullscreen();
 

@@ -232,17 +232,17 @@ vec3f Camera::get_position() const {
 
 CGAL_INLINE_FUNCTION
 vec3f Camera::get_forward() const {
-  return (orientation_.inverse() * -vec3f::UnitZ()).normalized();
+  return (orientation_.conjugate() * -vec3f::UnitZ()).normalized();
 }
 
 CGAL_INLINE_FUNCTION
 vec3f Camera::get_right() const {
-  return (orientation_.inverse() * vec3f::UnitX()).normalized();
+  return (orientation_.conjugate() * vec3f::UnitX()).normalized();
 }
 
 CGAL_INLINE_FUNCTION
 vec3f Camera::get_up() const {
-  return (orientation_.inverse() * vec3f::UnitY()).normalized();
+  return (orientation_.conjugate() * vec3f::UnitY()).normalized();
 }
 
 CGAL_INLINE_FUNCTION

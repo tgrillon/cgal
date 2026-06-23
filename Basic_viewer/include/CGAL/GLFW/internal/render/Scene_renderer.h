@@ -10,7 +10,7 @@
 #include "Drawable.h"
 #include "Gizmos.h"
 #include "Shader_program.h"
-#include <CGAL/GLFW/internal/controls/Camera.h>
+#include <CGAL/GLFW/internal/controls/Camera_controller.h>
 #include <CGAL/GLFW/internal/controls/Clipping_plane.h>
 #include <CGAL/GLFW/internal/math/math_utils.h>
 #include <CGAL/GLFW/internal/Window.h>
@@ -27,7 +27,7 @@ public:
 
 public: 
   Scene_renderer(const Graphics_scene& scene, 
-                 const Camera&         camera, 
+                 const Camera_controller&         camera, 
                  const Clipping_plane& clip, 
                  const Window&         window); 
 
@@ -171,7 +171,7 @@ private: // private member methods
 private: // private member attributes
   // ---- references (lifetime owned by Basic_viewer) ----  
   const Graphics_scene& scene_;
-  const Camera& camera_;
+  const Camera_controller& camera_;
   const Clipping_plane& clipping_plane_;
   const Window& window_;
 
